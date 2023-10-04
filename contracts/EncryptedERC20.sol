@@ -8,8 +8,8 @@ import "../lib/TFHE.sol";
 
 contract EncryptedERC20 is EIP712WithModifier {
     euint32 private totalSupply;
-    string public constant name = "Naraggara"; // City of Zama's battle
-    string public constant symbol = "NARA";
+    string public name;
+    string public symbol;
     uint8 public constant decimals = 18;
 
     // used for output authorization
@@ -24,8 +24,10 @@ contract EncryptedERC20 is EIP712WithModifier {
     // The owner of the contract.
     address public contractOwner;
 
-    constructor() EIP712WithModifier("Authorization token", "1") {
+    constructor(string memory _name, string memory _symbol) EIP712WithModifier("Authorization token", "1") {
         contractOwner = msg.sender;
+        name = _name;
+        symbol = _symbol;
     }
 
     // Sets the balance of the owner to the given encrypted balance.
