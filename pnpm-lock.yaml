@@ -70,6 +70,9 @@ devDependencies:
   ethers:
     specifier: ^6.4.0
     version: 6.4.0
+  fhevm:
+    specifier: ^0.1.13
+    version: 0.1.13
   fhevmjs:
     specifier: ^0.2.0
     version: 0.2.1
@@ -1188,7 +1191,6 @@ packages:
 
   /@openzeppelin/contracts@4.9.2:
     resolution: {integrity: sha512-mO+y6JaqXjWeMh9glYVzVu8HYPGknAAnWyxTRhGeckOruyXQMNnlcW6w/Dx9ftLeIQk6N+ZJFuVmTwF7lEIFrg==}
-    dev: false
 
   /@scure/base@1.1.1:
     resolution: {integrity: sha512-ZxOhsSyxYwLJj3pLZCefNitxsj093tb2vq90mp2txoYeBqbcjDjqFhyM8eUjq/uFm6zJ+mUuqxlS2FkuSY1MTA==}
@@ -3111,6 +3113,12 @@ packages:
     resolution: {integrity: sha512-wBrocU2LCXXa+lWBt8RoIRD89Fi8OdABODa/kEnyeyjS5aZO5/GNvI5sEINADqP/h8M29UHTHUb53sUu5Ihqdw==}
     dependencies:
       reusify: 1.0.4
+    dev: true
+
+  /fhevm@0.1.13:
+    resolution: {integrity: sha512-LI+OkwEAysbPP1lSiZY1/JrV3ayk0w24K8PU+fZ1s97A31M1TG4h4N6uH5/+pX2KeJ1x8HAVAvxhxLQWnNE9Zg==}
+    dependencies:
+      '@openzeppelin/contracts': 4.9.2
     dev: true
 
   /fhevmjs@0.2.1:
