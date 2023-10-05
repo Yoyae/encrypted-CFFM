@@ -40,8 +40,8 @@ describe("CFMM", function () {
   });
 
   it("should add liquidity correctly", async function () {
-    let encryptedAmountA = this.instancesTokenA.alice.encrypt32(10000);
-    let encryptedAmountB = this.instancesTokenB.alice.encrypt32(1000);
+    const encryptedAmountA = this.instancesTokenA.alice.encrypt32(10000);
+    const encryptedAmountB = this.instancesTokenB.alice.encrypt32(1000);
 
     let transaction = await createTransaction(this.tokenA.approve, this.CFMMAddress, encryptedAmountA);
     await transaction.wait();
