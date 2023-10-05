@@ -49,11 +49,11 @@ contract CFMM is EIP712WithModifier {
         euint32 amountBOut = getAmountBOut(amountAIn);
         require(TFHE.decrypt(TFHE.gt(amountBOut, 0)));
 
-        EncryptedERC20(tokenA).transferFrom(msg.sender, address(this), encryptedAmountAIn);
-        EncryptedERC20(tokenB).transfer(msg.sender, amountBOut);
-
         reserveA = reserveA + amountAIn;
         reserveB = reserveB - amountBOut;
+
+        EncryptedERC20(tokenA).transferFrom(msg.sender, address(this), encryptedAmountAIn);
+        EncryptedERC20(tokenB).transfer(msg.sender, amountBOut);
 
         emit SwapAtoB(msg.sender, amountAIn, amountBOut);
     }
@@ -66,11 +66,11 @@ contract CFMM is EIP712WithModifier {
         euint32 amountAOut = getAmountBOut(amountBIn);
         require(TFHE.decrypt(TFHE.gt(amountAOut, 0)));
 
-        EncryptedERC20(tokenB).transferFrom(msg.sender, address(this), encryptedAmountBIn);
-        EncryptedERC20(tokenA).transfer(msg.sender, amountAOut);
-
         reserveB = reserveB + amountBIn;
         reserveA = reserveA - amountAOut;
+
+        EncryptedERC20(tokenB).transferFrom(msg.sender, address(this), encryptedAmountBIn);
+        EncryptedERC20(tokenA).transfer(msg.sender, amountAOut);
 
         emit SwapAtoB(msg.sender, amountBIn, amountAOut);
     }
