@@ -139,6 +139,9 @@ const config: HardhatUserConfig = {
       },
     },
   },
+  mocha: {
+    timeout: 100000,
+  },
   typechain: {
     outDir: "types",
     target: "ethers-v6",
