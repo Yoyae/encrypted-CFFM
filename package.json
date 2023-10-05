@@ -78,6 +78,7 @@
     "task:getEthereumAddress": "hardhat task:getEthereumAddress",
     "task:mint": "hardhat task:mint",
     "task:deployERC20": "hardhat task:deployERC20",
+    "task:deployCFMM": "hardhat task:deployCFMM",
     "task:accounts": "hardhat task:accounts",
     "fhevm:start": "docker run -i -p 8545:8545 --rm --name fhevm ghcr.io/zama-ai/evmos-dev-node:v0.1.9",
     "fhevm:stop": "docker rm -f fhevm",
