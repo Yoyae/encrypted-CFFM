@@ -2,9 +2,8 @@
 
 pragma solidity 0.8.19;
 
-import "../abstracts/EIP712WithModifier.sol";
-
-import "../lib/TFHE.sol";
+import "fhevm/abstracts/EIP712WithModifier.sol";
+import "fhevm/lib/TFHE.sol";
 
 contract EncryptedERC20 is EIP712WithModifier {
     euint32 private totalSupply;

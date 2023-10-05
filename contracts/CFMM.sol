@@ -2,24 +2,17 @@
 
 pragma solidity 0.8.19;
 
-interface IERC20 {
-    function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
-
-    function transfer(address recipient, uint256 amount) external returns (bool);
-
-    function approve(address spender, uint256 amount) external returns (bool);
-
-    function balanceOf(address account) external view returns (uint256);
-}
+import "./EncryptedERC20.sol";
 
 contract CFMM {
     address public tokenA;
     address public tokenB;
-    uint256 public reserveA;
-    uint256 public reserveB;
+    euint32 public reserveA;
+    euint32 public reserveB;
+    euint32 public constantProduct;
 
-    event SwapAtoB(address indexed sender, uint256 amountAIn, uint256 amountBOut);
-    event SwapBtoA(address indexed sender, uint256 amountBIn, uint256 amountAOut);
+    event SwapAtoB(address indexed sender, euint32 amountAIn, euint32 amountBOut);
+    event SwapBtoA(address indexed sender, euint32 amountBIn, euint32 amountAOut);
 
     constructor(address _tokenA, address _tokenB) {
         tokenA = _tokenA;
@@ -27,67 +20,72 @@ contract CFMM {
     }
 
     // Function to add liquidity
-    function addLiquidity(uint256 amountA, uint256 amountB) external {
-        require(IERC20(tokenA).transferFrom(msg.sender, address(this), amountA), "Transfer of tokenA failed");
-        require(IERC20(tokenB).transferFrom(msg.sender, address(this), amountB), "Transfer of tokenB failed");
+    function addLiquidity(bytes calldata encryptedAmountA, bytes calldata encryptedAmountB) external {
+        euint32 amountA = TFHE.asEuint32(encryptedAmountA);
+        euint32 amountB = TFHE.asEuint32(encryptedAmountB);
 
-        reserveA += amountA;
-        reserveB += amountB;
+        EncryptedERC20(tokenA).transferFrom(msg.sender, address(this), encryptedAmountA);
+        EncryptedERC20(tokenB).transferFrom(msg.sender, address(this), encryptedAmountB);
+
+        reserveA = reserveA + amountA;
+        reserveB = reserveB + amountB;
+
+        constantProduct = reserveA * reserveB;
     }
 
     // Function to swap tokenA to tokenB
-    function swapAtoB(uint256 amountAIn) external {
-        require(amountAIn > 0, "AmountAIn must be greater than 0");
+    function swapAtoB(bytes calldata encryptedAmountAIn) external {
+        euint32 amountAIn = TFHE.asEuint32(encryptedAmountAIn);
+        require(TFHE.decrypt(TFHE.gt(amountAIn, 0)));
 
-        uint256 amountBOut = getAmountBOut(amountAIn);
-        require(amountBOut > 0, "AmountBOut must be greater than 0");
+        euint32 amountBOut = getAmountBOut(amountAIn);
+        require(TFHE.decrypt(TFHE.gt(amountBOut, 0)));
 
-        require(IERC20(tokenA).transferFrom(msg.sender, address(this), amountAIn), "Transfer of tokenA failed");
-        require(IERC20(tokenB).transfer(msg.sender, amountBOut), "Transfer of tokenB failed");
+        EncryptedERC20(tokenA).transferFrom(msg.sender, address(this), encryptedAmountAIn);
+        EncryptedERC20(tokenB).transfer(msg.sender, amountBOut);
 
-        reserveA += amountAIn;
-        reserveB -= amountBOut;
+        reserveA = reserveA + amountAIn;
+        reserveB = reserveB - amountBOut;
 
         emit SwapAtoB(msg.sender, amountAIn, amountBOut);
     }
 
-    // Function to swap tokenB to tokenA
-    function swapBtoA(uint256 amountBIn) external {
-        require(amountBIn > 0, "amountBIn must be greater than 0");
+    // Function to swap tokenA to tokenB
+    function swapBtoA(bytes calldata encryptedAmountBIn) external {
+        euint32 amountBIn = TFHE.asEuint32(encryptedAmountBIn);
+        require(TFHE.decrypt(TFHE.gt(amountBIn, 0)));
 
-        uint256 amountAOut = getAmountAOut(amountBIn);
-        require(amountAOut > 0, "amountAOut must be greater than 0");
+        euint32 amountAOut = getAmountBOut(amountBIn);
+        require(TFHE.decrypt(TFHE.gt(amountAOut, 0)));
 
-        require(IERC20(tokenB).transferFrom(msg.sender, address(this), amountBIn), "Transfer of tokenB failed");
-        require(IERC20(tokenA).transfer(msg.sender, amountAOut), "Transfer of tokenA failed");
+        EncryptedERC20(tokenB).transferFrom(msg.sender, address(this), encryptedAmountBIn);
+        EncryptedERC20(tokenA).transfer(msg.sender, amountAOut);
 
-        reserveB -= amountBIn;
-        reserveA -= amountAOut;
+        reserveB = reserveB + amountBIn;
+        reserveA = reserveA - amountAOut;
 
-        emit SwapBtoA(msg.sender, amountBIn, amountAOut);
+        emit SwapAtoB(msg.sender, amountBIn, amountAOut);
     }
 
     // Function to calculate tokenB amount to withdraw based on tokenA
-    function getAmountBOut(uint256 amountAIn) public view returns (uint256) {
-        require(amountAIn > 0, "AmountAIn must be greater than 0");
+    function getAmountBOut(euint32 amountAIn) internal view returns (euint32) {
+        require(TFHE.decrypt(TFHE.gt(amountAIn, 0)));
 
-        uint256 constantProduct = reserveA * reserveB;
-        uint256 newReserveA = reserveA + amountAIn;
-        uint256 newReserveB = constantProduct / newReserveA;
+        euint32 newReserveA = reserveA + amountAIn;
+        euint32 newReserveB = TFHE.div(constantProduct, TFHE.decrypt(newReserveA));
 
-        uint256 amountBOut = reserveB - newReserveB;
+        euint32 amountBOut = reserveB - newReserveB;
         return amountBOut;
     }
 
     // Function to calculate tokenA amount to withdraw based on tokenB
-    function getAmountAOut(uint256 amountBIn) public view returns (uint256) {
-        require(amountBIn > 0, "amountBIn must be greater than 0");
+    function getAmountAOut(euint32 amountBIn) internal view returns (euint32) {
+        require(TFHE.decrypt(TFHE.gt(amountBIn, 0)));
 
-        uint256 constantProduct = reserveA * reserveB;
-        uint256 newReserveB = reserveB + amountBIn;
-        uint256 newReserveA = constantProduct / newReserveB;
+        euint32 newReserveB = reserveB + amountBIn;
+        euint32 newReserveA = TFHE.div(constantProduct, TFHE.decrypt(newReserveB));
 
-        uint256 amountAOut = reserveA - newReserveA;
+        euint32 amountAOut = reserveA - newReserveA;
         return amountAOut;
     }
 }
