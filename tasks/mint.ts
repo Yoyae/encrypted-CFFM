@@ -17,9 +17,48 @@ task("task:mint")
 
     const encryptedERC20 = await ethers.getContractAt("EncryptedERC20", EncryptedERC20.address);
 
-    await encryptedERC20
+    const generateToken = instances[taskArguments.account as keyof FhevmInstances].generateToken({
+      verifyingContract: EncryptedERC20.address,
+    });
+
+    const signature = await signers[taskArguments.account as keyof Signers].signTypedData(
+      generateToken.token.domain,
+      { Reencrypt: generateToken.token.types.Reencrypt },
+      generateToken.token.message,
+    );
+
+    instances[taskArguments.account as keyof FhevmInstances].setTokenSignature(EncryptedERC20.address, signature);
+
+    const encryptedBalanceOld = await encryptedERC20
+      .connect(signers[taskArguments.account as keyof Signers])
+      .balanceOf(generateToken.publicKey, signature);
+
+    const balanceOld = instances[taskArguments.account as keyof FhevmInstances].decrypt(
+      EncryptedERC20.address,
+      encryptedBalanceOld,
+    );
+
+    console.log("BalanceOf before : ", balanceOld);
+
+    const tx = await encryptedERC20
       .connect(signers[taskArguments.account as keyof Signers])
       .mint(instances[taskArguments.account as keyof FhevmInstances].encrypt32(+taskArguments.mint));
 
-    console.log("Mint done: ", taskArguments.mint);
+    // This is the ideal way
+    // but method 'HardhatEthersProvider.waitForTransaction' is not implemented
+    // await ethers.provider.waitForTransaction(tx.hash);
+
+    // Another way is to wait 1 confirmation
+    await tx.wait(1);
+
+    const encryptedBalanceNew = await encryptedERC20
+      .connect(signers[taskArguments.account as keyof Signers])
+      .balanceOf(generateToken.publicKey, signature);
+
+    const balanceNew = instances[taskArguments.account as keyof FhevmInstances].decrypt(
+      EncryptedERC20.address,
+      encryptedBalanceNew,
+    );
+
+    console.log("BalanceOf after : ", balanceNew);
   });
