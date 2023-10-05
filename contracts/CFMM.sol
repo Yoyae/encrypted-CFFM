@@ -4,19 +4,27 @@ pragma solidity 0.8.19;
 
 import "./EncryptedERC20.sol";
 
-contract CFMM {
+contract CFMM is EIP712WithModifier {
     address public tokenA;
     address public tokenB;
-    euint32 public reserveA;
-    euint32 public reserveB;
-    euint32 public constantProduct;
+    euint32 internal reserveA;
+    euint32 internal reserveB;
+    euint32 internal constantProduct;
+
+    address public contractOwner;
 
     event SwapAtoB(address indexed sender, euint32 amountAIn, euint32 amountBOut);
     event SwapBtoA(address indexed sender, euint32 amountBIn, euint32 amountAOut);
 
-    constructor(address _tokenA, address _tokenB) {
+    modifier onlyContractOwner() {
+        require(msg.sender == contractOwner);
+        _;
+    }
+
+    constructor(address _tokenA, address _tokenB) EIP712WithModifier("Authorization token", "1") {
         tokenA = _tokenA;
         tokenB = _tokenB;
+        contractOwner = msg.sender;
     }
 
     // Function to add liquidity
@@ -87,5 +95,29 @@ contract CFMM {
 
         euint32 amountAOut = reserveA - newReserveA;
         return amountAOut;
+    }
+
+    // Function to retreive reserveA (onlyOwner)
+    function getReserveA(
+        bytes32 publicKey,
+        bytes calldata signature
+    ) public view onlySignedPublicKey(publicKey, signature) onlyContractOwner returns (bytes memory) {
+        return TFHE.reencrypt(reserveA, publicKey, 0);
+    }
+
+    // Function to retreive reserveB (onlyOwner)
+    function getReserveB(
+        bytes32 publicKey,
+        bytes calldata signature
+    ) public view onlySignedPublicKey(publicKey, signature) onlyContractOwner returns (bytes memory) {
+        return TFHE.reencrypt(reserveB, publicKey, 0);
+    }
+
+    // Function to retreive constantProduct (onlyOwner)
+    function getConstantProduct(
+        bytes32 publicKey,
+        bytes calldata signature
+    ) public view onlySignedPublicKey(publicKey, signature) onlyContractOwner returns (bytes memory) {
+        return TFHE.reencrypt(constantProduct, publicKey, 0);
     }
 }
