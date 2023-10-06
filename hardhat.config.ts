@@ -6,10 +6,18 @@ import type { NetworkUserConfig } from "hardhat/types";
 import { resolve } from "path";
 
 import "./tasks/accounts";
+import "./tasks/addLiquidity";
 import "./tasks/deployCFMM";
 import "./tasks/deployERC20";
+import "./tasks/getAllowanceTokenA";
+import "./tasks/getAllowanceTokenB";
+import "./tasks/getBalanceTokenA";
+import "./tasks/getBalanceTokenB";
 import "./tasks/getEthereumAddress";
-import "./tasks/mint";
+import "./tasks/mintTokenA";
+import "./tasks/mintTokenB";
+import "./tasks/swapAtoB";
+import "./tasks/swapBtoA";
 
 const dotenvConfigPath: string = process.env.DOTENV_CONFIG_PATH || "./.env";
 dotenvConfig({ path: resolve(__dirname, dotenvConfigPath) });

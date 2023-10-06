@@ -5,16 +5,18 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();
   const { deploy } = hre.deployments;
 
-  const deployedTokenA = await deploy("EncryptedERC20", {
+  const deployedTokenA = await deploy("tokenA", {
     from: deployer,
+    contract: "EncryptedERC20",
     args: ["Naraggara", "NARA"],
     log: true,
   });
 
   console.log(`Token A contract: `, deployedTokenA.address);
 
-  const deployedTokenB = await deploy("EncryptedERC20", {
+  const deployedTokenB = await deploy("tokenB", {
     from: deployer,
+    contract: "EncryptedERC20",
     args: ["Margaron", "MARG"],
     log: true,
   });
