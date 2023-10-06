@@ -60,7 +60,7 @@ contract CFMM is EIP712WithModifier {
         euint32 amountBIn = TFHE.asEuint32(encryptedAmountBIn);
         require(TFHE.decrypt(TFHE.gt(amountBIn, 0)));
 
-        euint32 amountAOut = getAmountBOut(amountBIn);
+        euint32 amountAOut = getAmountAOut(amountBIn);
         require(TFHE.decrypt(TFHE.gt(amountAOut, 0)));
 
         reserveB = reserveB + amountBIn;
