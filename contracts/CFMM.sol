@@ -13,9 +13,6 @@ contract CFMM is EIP712WithModifier {
 
     address public contractOwner;
 
-    event SwapAtoB(address indexed sender, euint32 amountAIn, euint32 amountBOut);
-    event SwapBtoA(address indexed sender, euint32 amountBIn, euint32 amountAOut);
-
     modifier onlyContractOwner() {
         require(msg.sender == contractOwner);
         _;
@@ -30,7 +27,9 @@ contract CFMM is EIP712WithModifier {
     // Function to add liquidity
     function addLiquidity(bytes calldata encryptedAmountA, bytes calldata encryptedAmountB) external {
         euint32 amountA = TFHE.asEuint32(encryptedAmountA);
+        require(TFHE.decrypt(TFHE.gt(amountA, 0)));
         euint32 amountB = TFHE.asEuint32(encryptedAmountB);
+        require(TFHE.decrypt(TFHE.gt(amountB, 0)));
 
         EncryptedERC20(tokenA).transferFrom(msg.sender, address(this), encryptedAmountA);
         EncryptedERC20(tokenB).transferFrom(msg.sender, address(this), encryptedAmountB);
@@ -54,8 +53,6 @@ contract CFMM is EIP712WithModifier {
 
         EncryptedERC20(tokenA).transferFrom(msg.sender, address(this), encryptedAmountAIn);
         EncryptedERC20(tokenB).transfer(msg.sender, amountBOut);
-
-        emit SwapAtoB(msg.sender, amountAIn, amountBOut);
     }
 
     // Function to swap tokenA to tokenB
@@ -71,8 +68,6 @@ contract CFMM is EIP712WithModifier {
 
         EncryptedERC20(tokenB).transferFrom(msg.sender, address(this), encryptedAmountBIn);
         EncryptedERC20(tokenA).transfer(msg.sender, amountAOut);
-
-        emit SwapAtoB(msg.sender, amountBIn, amountAOut);
     }
 
     // Function to calculate tokenB amount to withdraw based on tokenA
@@ -80,7 +75,10 @@ contract CFMM is EIP712WithModifier {
         require(TFHE.decrypt(TFHE.gt(amountAIn, 0)));
 
         euint32 newReserveA = reserveA + amountAIn;
-        euint32 newReserveB = TFHE.div(constantProduct, TFHE.decrypt(newReserveA));
+
+        // TFHE.div(constantProduct, TFHE.decrypt(newReserveA)); is not working (too much gas).
+        // This is a temporary workaround
+        euint32 newReserveB = TFHE.asEuint32(TFHE.decrypt(constantProduct) / TFHE.decrypt(newReserveA));
 
         euint32 amountBOut = reserveB - newReserveB;
         return amountBOut;
@@ -91,7 +89,10 @@ contract CFMM is EIP712WithModifier {
         require(TFHE.decrypt(TFHE.gt(amountBIn, 0)));
 
         euint32 newReserveB = reserveB + amountBIn;
-        euint32 newReserveA = TFHE.div(constantProduct, TFHE.decrypt(newReserveB));
+
+        // TFHE.div(constantProduct, TFHE.decrypt(newReserveB)); is not working (too much gas).
+        // This is a temporary workaround
+        euint32 newReserveA = TFHE.asEuint32(TFHE.decrypt(constantProduct) / TFHE.decrypt(newReserveB));
 
         euint32 amountAOut = reserveA - newReserveA;
         return amountAOut;
