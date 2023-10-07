@@ -31,6 +31,10 @@ contract CFMM is EIP712WithModifier {
         euint32 amountB = TFHE.asEuint32(encryptedAmountB);
         require(TFHE.decrypt(TFHE.gt(amountB, 0)));
 
+        //check overflow
+        require(TFHE.decrypt(TFHE.ge(amountA + amountB, amountA)));
+        require(TFHE.decrypt(TFHE.ge(amountA + amountB, amountB)));
+
         EncryptedERC20(tokenA).transferFrom(msg.sender, address(this), encryptedAmountA);
         EncryptedERC20(tokenB).transferFrom(msg.sender, address(this), encryptedAmountB);
 
@@ -48,6 +52,11 @@ contract CFMM is EIP712WithModifier {
         euint32 amountBOut = getAmountBOut(amountAIn);
         require(TFHE.decrypt(TFHE.gt(amountBOut, 0)));
 
+        //overflow check
+        require(TFHE.decrypt(TFHE.ge(amountAIn + reserveA, reserveA)));
+        //underflow check
+        require(TFHE.decrypt(TFHE.le(amountBOut, reserveB)));
+
         reserveA = reserveA + amountAIn;
         reserveB = reserveB - amountBOut;
 
@@ -62,6 +71,11 @@ contract CFMM is EIP712WithModifier {
 
         euint32 amountAOut = getAmountAOut(amountBIn);
         require(TFHE.decrypt(TFHE.gt(amountAOut, 0)));
+
+        //overflow check
+        require(TFHE.decrypt(TFHE.ge(amountBIn + reserveB, reserveB)));
+        //underflow check
+        require(TFHE.decrypt(TFHE.le(amountAOut, reserveA)));
 
         reserveB = reserveB + amountBIn;
         reserveA = reserveA - amountAOut;
