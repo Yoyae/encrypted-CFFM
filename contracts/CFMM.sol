@@ -60,6 +60,9 @@ contract CFMM is EIP712WithModifier {
         reserveA = reserveA + amountAIn;
         reserveB = reserveB - amountBOut;
 
+        //reserve must be kept positive
+        require(TFHE.decrypt(TFHE.ge(reserveB, 1)));
+
         EncryptedERC20(tokenA).transferFrom(msg.sender, address(this), encryptedAmountAIn);
         EncryptedERC20(tokenB).transfer(msg.sender, amountBOut);
     }
@@ -79,6 +82,9 @@ contract CFMM is EIP712WithModifier {
 
         reserveB = reserveB + amountBIn;
         reserveA = reserveA - amountAOut;
+
+        //reserve must be kept positive
+        require(TFHE.decrypt(TFHE.ge(reserveA, 1)));
 
         EncryptedERC20(tokenB).transferFrom(msg.sender, address(this), encryptedAmountBIn);
         EncryptedERC20(tokenA).transfer(msg.sender, amountAOut);
