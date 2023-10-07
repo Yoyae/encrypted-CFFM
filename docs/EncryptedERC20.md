@@ -98,25 +98,25 @@ function transferFrom(address from, address to, bytes encryptedAmount) public
 function transferFrom(address from, address to, euint32 amount) public
 ```
 
-### _approve
+### \_approve
 
 ```solidity
 function _approve(address owner, address spender, euint32 amount) internal
 ```
 
-### _allowance
+### \_allowance
 
 ```solidity
 function _allowance(address owner, address spender) internal view returns (euint32)
 ```
 
-### _updateAllowance
+### \_updateAllowance
 
 ```solidity
 function _updateAllowance(address owner, address spender, euint32 amount) internal
 ```
 
-### _transfer
+### \_transfer
 
 ```solidity
 function _transfer(address from, address to, euint32 amount) internal
@@ -127,4 +127,3 @@ function _transfer(address from, address to, euint32 amount) internal
 ```solidity
 modifier onlyContractOwner()
 ```
-
