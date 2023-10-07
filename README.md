@@ -1,15 +1,22 @@
-# Hardhat Template [![Open in Gitpod][gitpod-badge]][gitpod] [![Github Actions][gha-badge]][gha] [![Hardhat][hardhat-badge]][hardhat] [![License: MIT][license-badge]][license]
+# CFMM (Constant Function Market Maker) - Zama Challenge [![Open in Gitpod][gitpod-badge]][gitpod] [![Github Actions][gha-badge]][gha] [![Hardhat][hardhat-badge]][hardhat] [![License: MIT][license-badge]][license]
 
-[gitpod]: https://gitpod.io/#https://github.com/zama-ai/fhevm-hardhat-template
+[gitpod]: https://gitpod.io/#https://github.com/Yoyae/encrypted-CFFM
 [gitpod-badge]: https://img.shields.io/badge/Gitpod-Open%20in%20Gitpod-FFB45B?logo=gitpod
-[gha]: https://github.com/zama-ai/fhevm-hardhat-template/actions
-[gha-badge]: https://github.com/zama-ai/fhevm-hardhat-template/actions/workflows/ci.yml/badge.svg
+[gha]: https://github.com/Yoyae/encrypted-CFFM/actions
+[gha-badge]: https://github.com/Yoyae/encrypted-CFFM/actions/workflows/ci.yml/badge.svg
 [hardhat]: https://hardhat.org/
 [hardhat-badge]: https://img.shields.io/badge/Built%20with-Hardhat-FFDB1C.svg
 [license]: https://opensource.org/licenses/MIT
 [license-badge]: https://img.shields.io/badge/License-MIT-blue.svg
 
-A Hardhat-based template for developing Solidity smart contracts, with sensible defaults.
+The CFMM (Constant Function Market Maker) contract is a liquidity pool. The contract provides functions for adding
+liquidity to the pool, swapping tokenA for tokenB, and swapping tokenB for tokenA, all with encrypted input amounts.
+Additionally, it offers methods for retrieving the current reserves of both tokens and the constant product, which
+remains constant throughout trading, a fundamental concept in automated market makers. The contract is designed to
+ensure security and control, with a contract owner having specific privileges, and it employs encryption techniques for
+privacy resulting in avoiding front run attack !
+
+Using hardhat template [here](https://github.com/zama-ai/fhevm-hardhat-template)
 
 - [Hardhat](https://github.com/nomiclabs/hardhat): compile, run and test smart contracts
 - [TypeChain](https://github.com/ethereum-ts/TypeChain): generate TypeScript bindings for smart contracts
@@ -17,50 +24,6 @@ A Hardhat-based template for developing Solidity smart contracts, with sensible 
 - [Solhint](https://github.com/protofire/solhint): code linter
 - [Solcover](https://github.com/sc-forks/solidity-coverage): code coverage
 - [Prettier Plugin Solidity](https://github.com/prettier-solidity/prettier-plugin-solidity): code formatter
-
-## Getting Started
-
-Click the [`Use this template`](https://github.com/zama-ai/fhevm-hardhat-template/generate) button at the top of the
-page to create a new repository with this repo as the initial state.
-
-## Features
-
-This template builds upon the frameworks and libraries mentioned above, so for details about their specific features,
-please consult their respective documentations.
-
-For example, for Hardhat, you can refer to the [Hardhat Tutorial](https://hardhat.org/tutorial) and the
-[Hardhat Docs](https://hardhat.org/docs). You might be in particular interested in reading the
-[Testing Contracts](https://hardhat.org/tutorial/testing-contracts) section.
-
-### Sensible Defaults
-
-This template comes with sensible default configurations in the following files:
-
-```text
-├── .editorconfig
-├── .eslintignore
-├── .eslintrc.yml
-├── .gitignore
-├── .prettierignore
-├── .prettierrc.yml
-├── .solcover.js
-├── .solhint.json
-└── hardhat.config.ts
-```
-
-### VSCode Integration
-
-This template is IDE agnostic, but for the best user experience, you may want to use it in VSCode alongside Nomic
-Foundation's [Solidity extension](https://marketplace.visualstudio.com/items?itemName=NomicFoundation.hardhat-solidity).
-
-### GitHub Actions
-
-This template comes with GitHub Actions pre-configured. Your contracts will be linted and tested on every push and pull
-request made to the `main` branch.
-
-Note though that to make this work, you must use your `INFURA_API_KEY` and your `MNEMONIC` as GitHub secrets.
-
-You can edit the CI script in [.github/workflows/ci.yml](./.github/workflows/ci.yml).
 
 ## Usage
 
@@ -172,10 +135,40 @@ One can change the network, check [hardhat config file](./hardhat.config.ts).
 
 #### Mint
 
-Run the `mint` task on the local network:
+Run the `mintTokenA` task on the local network which add token A balance on the specified account:
 
 ```sh
-pnpm task:mint --network local --mint 1000 --account alice
+pnpm task:mintTokenA --network local --mint 1000 --account alice
+```
+
+Run the `mintTokenB` task on the local network which add token B balance on the specified account:
+
+```sh
+pnpm task:mintTokenB --network local --mint 1000 --account alice
+```
+
+#### Add liquidity
+
+Run the `addLiquidity` task on the local network :
+
+```sh
+pnpm task:addLiquidity --network local --reservea 10000 --reserveb 1000 --account alice
+```
+
+#### Swap Token A
+
+Run the `swapAtoB` task on the local network :
+
+```sh
+pnpm task:swapAtoB --network local --amount 100 --account alice
+```
+
+#### Swap Token B
+
+Run the `swapBtoA` task on the local network :
+
+```sh
+pnpm task:swapBtoA --network local --amount 100 --account alice
 ```
 
 ### Test
@@ -184,6 +177,43 @@ Run the tests with Hardhat:
 
 ```sh
 pnpm test
+```
+
+And only the tests for CFMM :
+
+```sh
+pnpm test:CFFM
+```
+
+## Test results
+
+```bash
+CFMM
+    Liquidity test
+      ✔ should add liquidity correctly (45093ms)
+      ✔ should revert if 0 liquidity is provided (reserve A) (22076ms)
+      ✔ should revert if 0 liquidity is provided (reserve B) (21704ms)
+      ✔ should revert when overflowing reserveA (22333ms)
+      ✔ should revert when overflowing reserveB (23398ms)
+    Test Swap functionality
+      Swap A to B
+        ✔ should swap correctly (20801ms)
+        ✔ should swap correctly at the limit (22470ms)
+        ✔ should revert after the limit (17448ms)
+        ✔ should revert if 0 token is provided (7469ms)
+      Swap B to A
+        ✔ should swap correctly (22959ms)
+        ✔ should swap correctly at the limit (22333ms)
+        ✔ should revert after the limit (16970ms)
+        ✔ should revert if 0 token is provided (7623ms)
+        ✔ should revert when a negative number is proposed (15625ms)
+    Access control
+      ✔ should revert when non admin calls getReserveA
+      ✔ should revert when non admin calls getReserveB
+      ✔ should revert when non admin calls getConstantProduct
+
+
+  18 passing (20m)
 ```
 
 ### Lint Solidity
@@ -234,6 +264,14 @@ Deploy a new instance of the EncryptedERC20 contract via a task:
 
 ```sh
 pnpm task:deployERC20
+```
+
+#### Deploy CFMM
+
+Deploy a new instance of the CFMM contract via a task:
+
+```sh
+pnpm task:deployCFMM
 ```
 
 ## Tips
