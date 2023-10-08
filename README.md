@@ -106,7 +106,9 @@ pnpm task:getEthereumAddress
 
 ### Deploy
 
-Deploy the ERC20 to local network:
+#### Local
+
+Deploy the CFMM along with 2 EncryptedERC20 tokens to local network:
 
 ```sh
 pnpm deploy:contracts
@@ -133,7 +135,17 @@ One can change the network, check [hardhat config file](./hardhat.config.ts).
 </details>
 <br />
 
-#### Mint
+#### Zama testnet
+
+Deploy the CFMM along with 2 EncryptedERC20 tokens to zama network:
+
+```sh
+pnpm deploy:testnet
+```
+
+### Mint
+
+All commands use --network local to address local network. For zama testnet, use --network zama.
 
 Run the `mintTokenA` task on the local network which add token A balance on the specified account:
 
@@ -147,7 +159,7 @@ Run the `mintTokenB` task on the local network which add token B balance on the 
 pnpm task:mintTokenB --network local --mint 1000 --account alice
 ```
 
-#### Add liquidity
+### Add liquidity
 
 Run the `addLiquidity` task on the local network :
 
@@ -155,7 +167,7 @@ Run the `addLiquidity` task on the local network :
 pnpm task:addLiquidity --network local --reservea 10000 --reserveb 1000 --account alice
 ```
 
-#### Swap Token A
+### Swap Token A
 
 Run the `swapAtoB` task on the local network :
 
@@ -163,7 +175,7 @@ Run the `swapAtoB` task on the local network :
 pnpm task:swapAtoB --network local --amount 100 --account alice
 ```
 
-#### Swap Token B
+### Swap Token B
 
 Run the `swapBtoA` task on the local network :
 
@@ -185,7 +197,7 @@ And only the tests for CFMM :
 pnpm test:CFFM
 ```
 
-## Test results
+#### Test results
 
 ```bash
 CFMM
