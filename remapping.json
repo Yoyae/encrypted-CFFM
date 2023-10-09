@@ -1,0 +1,4 @@
+{
+  "remappings": ["fhevm/=/share/node_modules/fhevm/", "@openzeppelin/=/share/node_modules/@openzeppelin/"],
+  "optimizer": { "enabled": true }
+}

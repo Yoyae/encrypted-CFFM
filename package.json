@@ -100,7 +100,12 @@
     "fhevm:faucet:alice": "docker exec -i fhevm faucet $(npx hardhat task:getEthereumAddressAlice)",
     "fhevm:faucet:bob": "docker exec -i fhevm faucet $(npx hardhat task:getEthereumAddressBob)",
     "fhevm:faucet:carol": "docker exec -i fhevm faucet $(npx hardhat task:getEthereumAddressCarol)",
-    "fhevm:faucet:dave": "docker exec -i fhevm faucet $(npx hardhat task:getEthereumAddressDave)"
+    "fhevm:faucet:dave": "docker exec -i fhevm faucet $(npx hardhat task:getEthereumAddressDave)",
+    "mythril:init": "docker pull mythril/myth",
+    "mythril:analyze": "docker run -it -v .:/share mythril/myth analyze /share/contracts/CFMM.sol --solc-json /share/remapping.json",
+    "slither:init": "docker pull trailofbits/eth-security-toolbox",
+    "slither:analyze": "docker run -it -v .:/share trailofbits/eth-security-toolbox slither /share/contracts/CFMM.sol --solc-remaps \"fhevm/=/share/node_modules/fhevm/ @openzeppelin/contracts/=/share/node_modules/@openzeppelin/contracts/\"",
+    "security:toolbox": "docker run -it -v .:/share trailofbits/eth-security-toolbox"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.9.2"
