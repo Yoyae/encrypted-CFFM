@@ -7,18 +7,18 @@ import "./EncryptedERC20.sol";
 
 /**
  * @title CFMM (Constant Function Market Maker) Contract
- * @dev This contract implements a decentralized exchange (DEX) for trading two tokens with encryption.
+ * @dev This contract implements a encrypted liquidity pool where you can trade two tokens.
  */
 contract CFMM is EIP712WithModifier {
     // Addresses of the two tokens to be traded
     address public tokenA;
     address public tokenB;
 
-    // Reserve amounts for tokenA and tokenB
+    // Reserve amounts for tokenA and tokenB (encrypted)
     euint32 internal reserveA;
     euint32 internal reserveB;
 
-    // Constant product of the reserves (invariant in a constant function market maker)
+    // Encrypted constant product of the reserves (invariant in a constant function market maker)
     euint32 internal constantProduct;
 
     // Address of the contract owner
@@ -49,7 +49,7 @@ contract CFMM is EIP712WithModifier {
      * @param encryptedAmountB Encrypted amount of tokenB.
      */
     function addLiquidity(bytes calldata encryptedAmountA, bytes calldata encryptedAmountB) external {
-        // Decrypt and validate the input amounts
+        // Validate the input amounts
         euint32 amountA = TFHE.asEuint32(encryptedAmountA);
         require(TFHE.decrypt(TFHE.gt(amountA, 0)), "AmountA must be > 0");
         euint32 amountB = TFHE.asEuint32(encryptedAmountB);
@@ -76,11 +76,11 @@ contract CFMM is EIP712WithModifier {
      * @param encryptedAmountAIn Encrypted amount of tokenA to swap.
      */
     function swapAtoB(bytes calldata encryptedAmountAIn) external {
-        // Decrypt and validate the input amount
+        // Validate the input amount
         euint32 amountAIn = TFHE.asEuint32(encryptedAmountAIn);
         require(TFHE.decrypt(TFHE.gt(amountAIn, 0)), "AmountAIn must be > 0");
 
-        // Calculate the amount of tokenB to be received
+        // Calculate the amount of tokenB to be received and validate it
         euint32 amountBOut = getAmountBOut(amountAIn);
         require(TFHE.decrypt(TFHE.gt(amountBOut, 0)), "AmountBOut must be > 0");
 
@@ -105,7 +105,7 @@ contract CFMM is EIP712WithModifier {
      * @param encryptedAmountBIn Encrypted amount of tokenB to swap.
      */
     function swapBtoA(bytes calldata encryptedAmountBIn) external {
-        // Decrypt and validate the input amount
+        // Validate the input amount
         euint32 amountBIn = TFHE.asEuint32(encryptedAmountBIn);
         require(TFHE.decrypt(TFHE.gt(amountBIn, 0)), "AmountBIn must be > 0");
 
@@ -135,6 +135,7 @@ contract CFMM is EIP712WithModifier {
      * @return Amount of tokenB to receive.
      */
     function getAmountBOut(euint32 amountAIn) internal view returns (euint32) {
+        // Validate the input amount
         require(TFHE.decrypt(TFHE.gt(amountAIn, 0)), "AmountAIn must be > 0");
 
         // Calculate new reserveA after the swap
@@ -152,6 +153,7 @@ contract CFMM is EIP712WithModifier {
      * @return Amount of tokenA to receive.
      */
     function getAmountAOut(euint32 amountBIn) internal view returns (euint32) {
+        // Validate the input amount
         require(TFHE.decrypt(TFHE.gt(amountBIn, 0)), "AmountBIn must be > 0");
 
         // Calculate new reserveB after the swap
@@ -167,7 +169,7 @@ contract CFMM is EIP712WithModifier {
      * @dev Function to retrieve the reserve amount of tokenA (onlyOwner).
      * @param publicKey Public key for reencryption.
      * @param signature Signature for authentication.
-     * @return Encrypted reserve amount of tokenA.
+     * @return Encrypted (with passed publicKey) reserve amount of tokenA.
      */
     function getReserveA(
         bytes32 publicKey,
@@ -180,7 +182,7 @@ contract CFMM is EIP712WithModifier {
      * @dev Function to retrieve the reserve amount of tokenB (onlyOwner).
      * @param publicKey Public key for reencryption.
      * @param signature Signature for authentication.
-     * @return Encrypted reserve amount of tokenB.
+     * @return Encrypted (with passed publicKey) reserve amount of tokenB.
      */
     function getReserveB(
         bytes32 publicKey,
@@ -193,7 +195,7 @@ contract CFMM is EIP712WithModifier {
      * @dev Function to retrieve the constant product (onlyOwner).
      * @param publicKey Public key for reencryption.
      * @param signature Signature for authentication.
-     * @return Encrypted constant product.
+     * @return Encrypted (with passed publicKey) constant product.
      */
     function getConstantProduct(
         bytes32 publicKey,
