@@ -4,16 +4,7 @@ pragma solidity 0.8.19;
 
 import "fhevm/abstracts/EIP712WithModifier.sol";
 import "fhevm/lib/TFHE.sol";
-
-interface EncryptedERC20 {
-    function transferFrom(address sender, address recipient, bytes calldata amount) external;
-
-    function transfer(address recipient, euint32 amount) external;
-
-    function approve(address spender, bytes calldata amount) external;
-
-    function balanceOf(address account) external view returns (bytes memory);
-}
+import "./IEncryptedERC20.sol";
 
 /**
  * @title CFMM (Constant Function Market Maker) Contract
@@ -79,8 +70,8 @@ contract CFMM is EIP712WithModifier {
         constantProduct = reserveA * reserveB;
 
         // Transfer tokens from the sender to the contract
-        EncryptedERC20(tokenA).transferFrom(msg.sender, address(this), encryptedAmountA);
-        EncryptedERC20(tokenB).transferFrom(msg.sender, address(this), encryptedAmountB);
+        IEncryptedERC20(tokenA).transferFrom(msg.sender, address(this), encryptedAmountA);
+        IEncryptedERC20(tokenB).transferFrom(msg.sender, address(this), encryptedAmountB);
     }
 
     /**
@@ -108,8 +99,8 @@ contract CFMM is EIP712WithModifier {
         require(TFHE.decrypt(TFHE.ge(reserveB, 1)), "ReserveB must be > 0");
 
         // Transfer tokens
-        EncryptedERC20(tokenA).transferFrom(msg.sender, address(this), encryptedAmountAIn);
-        EncryptedERC20(tokenB).transfer(msg.sender, amountBOut);
+        IEncryptedERC20(tokenA).transferFrom(msg.sender, address(this), encryptedAmountAIn);
+        IEncryptedERC20(tokenB).transfer(msg.sender, amountBOut);
     }
 
     /**
@@ -137,8 +128,8 @@ contract CFMM is EIP712WithModifier {
         require(TFHE.decrypt(TFHE.ge(reserveA, 1)), "ReserveA must be > 0");
 
         // Transfer tokens
-        EncryptedERC20(tokenB).transferFrom(msg.sender, address(this), encryptedAmountBIn);
-        EncryptedERC20(tokenA).transfer(msg.sender, amountAOut);
+        IEncryptedERC20(tokenB).transferFrom(msg.sender, address(this), encryptedAmountBIn);
+        IEncryptedERC20(tokenA).transfer(msg.sender, amountAOut);
     }
 
     /**
