@@ -2,8 +2,18 @@
 
 pragma solidity 0.8.19;
 
-// Importing the EncryptedERC20 contract which import TFHE.sol and EIP712WithModifier.sol
-import "./EncryptedERC20.sol";
+import "fhevm/abstracts/EIP712WithModifier.sol";
+import "fhevm/lib/TFHE.sol";
+
+interface EncryptedERC20 {
+    function transferFrom(address sender, address recipient, bytes calldata amount) external;
+
+    function transfer(address recipient, euint32 amount) external;
+
+    function approve(address spender, bytes calldata amount) external;
+
+    function balanceOf(address account) external view returns (bytes memory);
+}
 
 /**
  * @title CFMM (Constant Function Market Maker) Contract
@@ -38,6 +48,8 @@ contract CFMM is EIP712WithModifier {
      * @param _tokenB Address of the second token.
      */
     constructor(address _tokenA, address _tokenB) EIP712WithModifier("Authorization token", "1") {
+        require(_tokenA != address(0), "Invalid tokenA address");
+        require(_tokenB != address(0), "Invalid tokenB address");
         tokenA = _tokenA;
         tokenB = _tokenB;
         contractOwner = msg.sender;
@@ -59,16 +71,16 @@ contract CFMM is EIP712WithModifier {
         require(TFHE.decrypt(TFHE.ge(amountA + amountB, amountA)), "Overflow check failed");
         require(TFHE.decrypt(TFHE.ge(amountA + amountB, amountB)), "Overflow check failed");
 
-        // Transfer tokens from the sender to the contract
-        EncryptedERC20(tokenA).transferFrom(msg.sender, address(this), encryptedAmountA);
-        EncryptedERC20(tokenB).transferFrom(msg.sender, address(this), encryptedAmountB);
-
         // Update reserveA and reserveB
         reserveA = reserveA + amountA;
         reserveB = reserveB + amountB;
 
         // Update constantProduct
         constantProduct = reserveA * reserveB;
+
+        // Transfer tokens from the sender to the contract
+        EncryptedERC20(tokenA).transferFrom(msg.sender, address(this), encryptedAmountA);
+        EncryptedERC20(tokenB).transferFrom(msg.sender, address(this), encryptedAmountB);
     }
 
     /**
