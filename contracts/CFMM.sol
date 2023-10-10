@@ -48,6 +48,8 @@ contract CFMM {
      * @param _tokenB Address of the second token.
      */
     constructor(address _tokenA, address _tokenB) {
+        require(_tokenA != address(0), "Invalid tokenA address");
+        require(_tokenB != address(0), "Invalid tokenB address");
         tokenA = _tokenA;
         tokenB = _tokenB;
         contractOwner = msg.sender;
@@ -65,20 +67,20 @@ contract CFMM {
         euint32 amountB = TFHE.asEuint32(encryptedAmountB);
         require(TFHE.decrypt(TFHE.gt(amountB, 0)), "amountB must be > 0");
 
-        // Transfer tokens from the sender to the contract
-        EncryptedERC20(tokenA).transferFrom(msg.sender, address(this), encryptedAmountA);
-        EncryptedERC20(tokenB).transferFrom(msg.sender, address(this), encryptedAmountB);
-
         // Update reserveA and reserveB
         reserveA = TFHE.add(reserveA, amountA);
         reserveB = TFHE.add(reserveB, amountB);
+
+        // Update constantProduct
+        constantProduct = TFHE.mul(reserveA, reserveB);
 
         // Check for overflow when adding to reserves
         require(TFHE.decrypt(TFHE.ge(reserveA, amountA)), "Overflow check failed");
         require(TFHE.decrypt(TFHE.ge(reserveB, amountB)), "Overflow check failed");
 
-        // Update constantProduct
-        constantProduct = TFHE.mul(reserveA, reserveB);
+        // Transfer tokens from the sender to the contract
+        EncryptedERC20(tokenA).transferFrom(msg.sender, address(this), encryptedAmountA);
+        EncryptedERC20(tokenB).transferFrom(msg.sender, address(this), encryptedAmountB);
     }
 
     /**

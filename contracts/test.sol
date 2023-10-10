@@ -2,11 +2,11 @@
 pragma solidity 0.8.15;
 
 interface IERC20 {
-    function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
+    function transferFrom(address sender, address recipient, uint256 amount) external;
 
-    function transfer(address recipient, uint256 amount) external returns (bool);
+    function transfer(address recipient, uint256 amount) external;
 
-    function approve(address spender, uint256 amount) external returns (bool);
+    function approve(address spender, uint256 amount) external;
 
     function balanceOf(address account) external view returns (uint256);
 }
@@ -40,6 +40,8 @@ contract CFMM {
      * @param _tokenB Address of the second token.
      */
     constructor(address _tokenA, address _tokenB) {
+        require(_tokenA != address(0), "Invalid tokenA address");
+        require(_tokenB != address(0), "Invalid tokenB address");
         tokenA = _tokenA;
         tokenB = _tokenB;
         contractOwner = msg.sender;
@@ -57,16 +59,16 @@ contract CFMM {
         uint amountB = encryptedAmountB;
         require(amountB > 0, "AmountB must be > 0");
 
-        // Transfer tokens from the sender to the contract
-        IERC20(tokenA).transferFrom(msg.sender, address(this), encryptedAmountA);
-        IERC20(tokenB).transferFrom(msg.sender, address(this), encryptedAmountB);
-
         // Update reserveA and reserveB
         reserveA = reserveA + amountA;
         reserveB = reserveB + amountB;
 
         // Update constantProduct
         constantProduct = reserveA * reserveB;
+
+        // Transfer tokens from the sender to the contract
+        IERC20(tokenA).transferFrom(msg.sender, address(this), encryptedAmountA);
+        IERC20(tokenB).transferFrom(msg.sender, address(this), encryptedAmountB);
     }
 
     /**
@@ -159,7 +161,7 @@ contract CFMM {
      * @dev Function to retrieve the reserve amount of tokenA (onlyOwner).
      * @return Encrypted (with passed publicKey) reserve amount of tokenA.
      */
-    function getReserveA() public view onlyContractOwner returns (uint) {
+    function getReserveA() external view onlyContractOwner returns (uint) {
         return reserveA;
     }
 
@@ -167,7 +169,7 @@ contract CFMM {
      * @dev Function to retrieve the reserve amount of tokenB (onlyOwner).
      * @return Encrypted (with passed publicKey) reserve amount of tokenB.
      */
-    function getReserveB() public view onlyContractOwner returns (uint) {
+    function getReserveB() external view onlyContractOwner returns (uint) {
         return reserveB;
     }
 
@@ -175,7 +177,7 @@ contract CFMM {
      * @dev Function to retrieve the constant product (onlyOwner).
      * @return Encrypted (with passed publicKey) constant product.
      */
-    function getConstantProduct() public view onlyContractOwner returns (uint) {
+    function getConstantProduct() external view onlyContractOwner returns (uint) {
         return constantProduct;
     }
 }

@@ -103,7 +103,7 @@
     "fhevm:faucet:dave": "docker exec -i fhevm faucet $(npx hardhat task:getEthereumAddressDave)",
     "mythril:init": "docker pull mythril/myth",
     "mythril:analyze": "docker run -it -v .:/share mythril/myth analyze /share/contracts/CFMM.sol --solc-json /share/remapping.json",
-    "slither:analyze": "docker run -it -v .:/share trailofbits/eth-security-toolbox slither /share/contracts/CFMM.sol --solc-remaps \"fhevm/=/share/node_modules/fhevm/ @openzeppelin/contracts/=/share/node_modules/@openzeppelin/contracts/\"",
+    "slither:analyze": "docker run -it -v .:/share trailofbits/eth-security-toolbox slither",
     "security:init": "docker pull trailofbits/eth-security-toolbox",
     "security:toolbox": "docker run -it -v .:/share trailofbits/eth-security-toolbox"
   },
