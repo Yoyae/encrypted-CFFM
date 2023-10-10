@@ -71,11 +71,11 @@ devDependencies:
     specifier: ^6.4.0
     version: 6.7.1
   fhevm:
-    specifier: ^0.1.13
-    version: 0.1.13
+    specifier: 0.1.11
+    version: 0.1.11
   fhevmjs:
-    specifier: ^0.2.0
-    version: 0.2.1
+    specifier: 0.2.0
+    version: 0.2.0
   fs-extra:
     specifier: ^10.1.0
     version: 10.1.0
@@ -2857,14 +2857,14 @@ packages:
       reusify: 1.0.4
     dev: true
 
-  /fhevm@0.1.13:
-    resolution: {integrity: sha512-LI+OkwEAysbPP1lSiZY1/JrV3ayk0w24K8PU+fZ1s97A31M1TG4h4N6uH5/+pX2KeJ1x8HAVAvxhxLQWnNE9Zg==}
+  /fhevm@0.1.11:
+    resolution: {integrity: sha512-fx2JdceNylMwHum6ZKBDpraxtWvbioUDwZH5I+Rgb6Y6aUfXX5hqYlzd+XZLxuGnvJGUhegmRJpMLdnS5dXaDA==}
     dependencies:
       '@openzeppelin/contracts': 4.9.3
     dev: true
 
-  /fhevmjs@0.2.1:
-    resolution: {integrity: sha512-Nz26dqyJpxIO/uVy2TioG/8Ad/qOC2Z8cIksDGLmbSBrMogwCR/hcilIAnvm74ffwgZkoqvOvP30NX+2dcSYcQ==}
+  /fhevmjs@0.2.0:
+    resolution: {integrity: sha512-2+GwV7DKtvRobp56E0ZR71vMgvurlyXjfIAWy2h+ChO8uN4JbCF1fgeY/EjzcKcwu59yEB7xkIRggu8OkzlP5A==}
     hasBin: true
     dependencies:
       commander: 11.0.0

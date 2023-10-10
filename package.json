@@ -27,8 +27,8 @@
     "eslint": "^8.28.0",
     "eslint-config-prettier": "^8.5.0",
     "ethers": "^6.4.0",
-    "fhevm": "^0.1.13",
-    "fhevmjs": "^0.2.0",
+    "fhevm": "0.1.11",
+    "fhevmjs": "0.2.0",
     "fs-extra": "^10.1.0",
     "hardhat": "^2.12.2",
     "hardhat-deploy": "^0.11.29",
@@ -103,8 +103,8 @@
     "fhevm:faucet:dave": "docker exec -i fhevm faucet $(npx hardhat task:getEthereumAddressDave)",
     "mythril:init": "docker pull mythril/myth",
     "mythril:analyze": "docker run -it -v .:/share mythril/myth analyze /share/contracts/CFMM.sol --solc-json /share/remapping.json",
-    "slither:init": "docker pull trailofbits/eth-security-toolbox",
     "slither:analyze": "docker run -it -v .:/share trailofbits/eth-security-toolbox slither /share/contracts/CFMM.sol --solc-remaps \"fhevm/=/share/node_modules/fhevm/ @openzeppelin/contracts/=/share/node_modules/@openzeppelin/contracts/\"",
+    "security:init": "docker pull trailofbits/eth-security-toolbox",
     "security:toolbox": "docker run -it -v .:/share trailofbits/eth-security-toolbox"
   },
   "dependencies": {

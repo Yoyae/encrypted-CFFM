@@ -1,15 +1,25 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.19;
+pragma solidity 0.8.15;
 
-// Importing the EncryptedERC20 contract which import TFHE.sol and EIP712WithModifier.sol
-import "./EncryptedERC20.sol";
+// Importing the EncryptedERC20 contract which import TFHE.sol
+import "fhevm/lib/TFHE.sol";
+
+interface EncryptedERC20 {
+    function transferFrom(address sender, address recipient, bytes calldata amount) external returns (bool);
+
+    function transfer(address recipient, euint32 amount) external returns (bool);
+
+    function approve(address spender, bytes calldata amount) external returns (bool);
+
+    function balanceOf(address account) external view returns (bytes memory);
+}
 
 /**
  * @title CFMM (Constant Function Market Maker) Contract
  * @dev This contract implements a encrypted liquidity pool where you can trade two tokens.
  */
-contract CFMM is EIP712WithModifier {
+contract CFMM {
     // Addresses of the two tokens to be traded
     address public tokenA;
     address public tokenB;
@@ -37,7 +47,7 @@ contract CFMM is EIP712WithModifier {
      * @param _tokenA Address of the first token.
      * @param _tokenB Address of the second token.
      */
-    constructor(address _tokenA, address _tokenB) EIP712WithModifier("Authorization token", "1") {
+    constructor(address _tokenA, address _tokenB) {
         tokenA = _tokenA;
         tokenB = _tokenB;
         contractOwner = msg.sender;
@@ -53,22 +63,22 @@ contract CFMM is EIP712WithModifier {
         euint32 amountA = TFHE.asEuint32(encryptedAmountA);
         require(TFHE.decrypt(TFHE.gt(amountA, 0)), "AmountA must be > 0");
         euint32 amountB = TFHE.asEuint32(encryptedAmountB);
-        require(TFHE.decrypt(TFHE.gt(amountB, 0)), "AmountB must be > 0");
-
-        // Check for overflow when adding to reserves
-        require(TFHE.decrypt(TFHE.ge(amountA + amountB, amountA)), "Overflow check failed");
-        require(TFHE.decrypt(TFHE.ge(amountA + amountB, amountB)), "Overflow check failed");
+        require(TFHE.decrypt(TFHE.gt(amountB, 0)), "amountB must be > 0");
 
         // Transfer tokens from the sender to the contract
         EncryptedERC20(tokenA).transferFrom(msg.sender, address(this), encryptedAmountA);
         EncryptedERC20(tokenB).transferFrom(msg.sender, address(this), encryptedAmountB);
 
         // Update reserveA and reserveB
-        reserveA = reserveA + amountA;
-        reserveB = reserveB + amountB;
+        reserveA = TFHE.add(reserveA, amountA);
+        reserveB = TFHE.add(reserveB, amountB);
+
+        // Check for overflow when adding to reserves
+        require(TFHE.decrypt(TFHE.ge(reserveA, amountA)), "Overflow check failed");
+        require(TFHE.decrypt(TFHE.ge(reserveB, amountB)), "Overflow check failed");
 
         // Update constantProduct
-        constantProduct = reserveA * reserveB;
+        constantProduct = TFHE.mul(reserveA, reserveB);
     }
 
     /**
@@ -84,13 +94,13 @@ contract CFMM is EIP712WithModifier {
         euint32 amountBOut = getAmountBOut(amountAIn);
         require(TFHE.decrypt(TFHE.gt(amountBOut, 0)), "AmountBOut must be > 0");
 
-        // Check for overflow and underflow
-        require(TFHE.decrypt(TFHE.ge(amountAIn + reserveA, reserveA)), "Overflow failed");
-        require(TFHE.decrypt(TFHE.le(amountBOut, reserveB)), "Underflow failed");
-
         // Update reserves
-        reserveA = reserveA + amountAIn;
-        reserveB = reserveB - amountBOut;
+        reserveA = TFHE.add(reserveA, amountAIn);
+        reserveB = TFHE.sub(reserveB, amountBOut);
+
+        // Check for overflow and underflow
+        require(TFHE.decrypt(TFHE.ge(reserveA, amountAIn)), "Overflow failed");
+        require(TFHE.decrypt(TFHE.le(amountBOut, reserveB)), "Underflow failed");
 
         // Ensure reserveB remains positive
         require(TFHE.decrypt(TFHE.ge(reserveB, 1)), "ReserveB must be > 0");
@@ -113,13 +123,13 @@ contract CFMM is EIP712WithModifier {
         euint32 amountAOut = getAmountAOut(amountBIn);
         require(TFHE.decrypt(TFHE.gt(amountAOut, 0)), "AmountAOut must be > 0");
 
-        // Check for overflow and underflow
-        require(TFHE.decrypt(TFHE.ge(amountBIn + reserveB, reserveB)), "Overflow failed");
-        require(TFHE.decrypt(TFHE.le(amountAOut, reserveA)), "Underflow failed");
-
         // Update reserves
-        reserveB = reserveB + amountBIn;
-        reserveA = reserveA - amountAOut;
+        reserveB = TFHE.add(reserveB, amountBIn);
+        reserveA = TFHE.sub(reserveA, amountAOut);
+
+        // Check for overflow and underflow
+        require(TFHE.decrypt(TFHE.ge(reserveB, amountBIn)), "Overflow failed");
+        require(TFHE.decrypt(TFHE.le(amountAOut, reserveA)), "Underflow failed");
 
         // Ensure reserveA remains positive
         require(TFHE.decrypt(TFHE.ge(reserveA, 1)), "ReserveA must be > 0");
@@ -139,11 +149,11 @@ contract CFMM is EIP712WithModifier {
         require(TFHE.decrypt(TFHE.gt(amountAIn, 0)), "AmountAIn must be > 0");
 
         // Calculate new reserveA after the swap
-        euint32 newReserveA = reserveA + amountAIn;
+        euint32 newReserveA = TFHE.add(reserveA, amountAIn);
 
         // Calculate the corresponding amount of tokenB
         euint32 newReserveB = TFHE.asEuint32(TFHE.decrypt(constantProduct) / TFHE.decrypt(newReserveA));
-        euint32 amountBOut = reserveB - newReserveB;
+        euint32 amountBOut = TFHE.sub(reserveB, newReserveB);
         return amountBOut;
     }
 
@@ -157,50 +167,11 @@ contract CFMM is EIP712WithModifier {
         require(TFHE.decrypt(TFHE.gt(amountBIn, 0)), "AmountBIn must be > 0");
 
         // Calculate new reserveB after the swap
-        euint32 newReserveB = reserveB + amountBIn;
+        euint32 newReserveB = TFHE.add(reserveB, amountBIn);
 
         // Calculate the corresponding amount of tokenA
         euint32 newReserveA = TFHE.asEuint32(TFHE.decrypt(constantProduct) / TFHE.decrypt(newReserveB));
-        euint32 amountAOut = reserveA - newReserveA;
+        euint32 amountAOut = TFHE.sub(reserveA, newReserveA);
         return amountAOut;
-    }
-
-    /**
-     * @dev Function to retrieve the reserve amount of tokenA (onlyOwner).
-     * @param publicKey Public key for reencryption.
-     * @param signature Signature for authentication.
-     * @return Encrypted (with passed publicKey) reserve amount of tokenA.
-     */
-    function getReserveA(
-        bytes32 publicKey,
-        bytes calldata signature
-    ) public view onlySignedPublicKey(publicKey, signature) onlyContractOwner returns (bytes memory) {
-        return TFHE.reencrypt(reserveA, publicKey, 0);
-    }
-
-    /**
-     * @dev Function to retrieve the reserve amount of tokenB (onlyOwner).
-     * @param publicKey Public key for reencryption.
-     * @param signature Signature for authentication.
-     * @return Encrypted (with passed publicKey) reserve amount of tokenB.
-     */
-    function getReserveB(
-        bytes32 publicKey,
-        bytes calldata signature
-    ) public view onlySignedPublicKey(publicKey, signature) onlyContractOwner returns (bytes memory) {
-        return TFHE.reencrypt(reserveB, publicKey, 0);
-    }
-
-    /**
-     * @dev Function to retrieve the constant product (onlyOwner).
-     * @param publicKey Public key for reencryption.
-     * @param signature Signature for authentication.
-     * @return Encrypted (with passed publicKey) constant product.
-     */
-    function getConstantProduct(
-        bytes32 publicKey,
-        bytes calldata signature
-    ) public view onlySignedPublicKey(publicKey, signature) onlyContractOwner returns (bytes memory) {
-        return TFHE.reencrypt(constantProduct, publicKey, 0);
     }
 }

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
-pragma solidity 0.8.19;
+pragma solidity 0.8.15;
 
 import "fhevm/abstracts/EIP712WithModifier.sol";
 import "fhevm/lib/TFHE.sol";
@@ -32,8 +32,8 @@ contract EncryptedERC20 is EIP712WithModifier {
     // Sets the balance of the owner to the given encrypted balance.
     function mint(bytes calldata encryptedAmount) public onlyContractOwner {
         euint32 amount = TFHE.asEuint32(encryptedAmount);
-        balances[contractOwner] = balances[contractOwner] + amount;
-        totalSupply = totalSupply + amount;
+        balances[contractOwner] = TFHE.add(balances[contractOwner], amount);
+        totalSupply = TFHE.add(totalSupply, amount);
     }
 
     // Transfers an encrypted amount from the message sender address to the `to` address.
@@ -106,7 +106,7 @@ contract EncryptedERC20 is EIP712WithModifier {
     function _updateAllowance(address owner, address spender, euint32 amount) internal {
         euint32 currentAllowance = _allowance(owner, spender);
         require(TFHE.decrypt(TFHE.le(amount, currentAllowance)));
-        _approve(owner, spender, currentAllowance - amount);
+        _approve(owner, spender, TFHE.sub(currentAllowance, amount));
     }
 
     // Transfers an encrypted amount.
@@ -115,8 +115,8 @@ contract EncryptedERC20 is EIP712WithModifier {
         require(TFHE.decrypt(TFHE.le(amount, balances[from])));
 
         // Add to the balance of `to` and subract from the balance of `from`.
-        balances[to] = balances[to] + amount;
-        balances[from] = balances[from] - amount;
+        balances[to] = TFHE.add(balances[to], amount);
+        balances[from] = TFHE.sub(balances[from], amount);
     }
 
     modifier onlyContractOwner() {
