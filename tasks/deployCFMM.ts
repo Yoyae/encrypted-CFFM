@@ -16,7 +16,7 @@ task("task:deployCFMM").setAction(async function (taskArguments: TaskArguments, 
   const contractFactory = await ethers.getContractFactory("CFMM");
   const contract = await contractFactory
     .connect(signers.alice)
-    .deploy(await contractTokenA.getAddress(), await contractTokenB.getAddress());
+    .deploy(await contractTokenA.getAddress(), await contractTokenB.getAddress(), 500);
   await contract.waitForDeployment();
 
   console.log("TokenA deployed to: ", await contractTokenA.getAddress());

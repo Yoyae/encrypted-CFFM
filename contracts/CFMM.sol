@@ -148,7 +148,7 @@ contract CFMM is EIP712WithModifier {
     function withdrawFee(address to) external onlyContractOwner {
         // Balance needs to be > 0
         require(
-            TFHE.decrypt(TFHE.gt(balanceFeeTokenA, 0)) || TFHE.decrypt(TFHE.gt(balanceFeeTokenB, 0)),
+            TFHE.decrypt(TFHE.gt(balanceFeeTokenA | balanceFeeTokenB, 0)),
             "balanceFeeTokenA or balanceFeeTokenB must be > 0"
         );
 
@@ -180,7 +180,7 @@ contract CFMM is EIP712WithModifier {
         euint32 amountBOut = reserveB - newReserveB;
 
         // Fees calculation
-        euint32 amountOfFee = TFHE.asEuint32(TFHE.decrypt(amountBOut * TFHE.asEuint32(fee)) / FEE_PERCENT);
+        euint32 amountOfFee = TFHE.asEuint32((TFHE.decrypt(amountBOut) * fee) / FEE_PERCENT);
 
         // Update balance fee of token B
         balanceFeeTokenB = balanceFeeTokenB + amountOfFee;
@@ -208,7 +208,7 @@ contract CFMM is EIP712WithModifier {
         euint32 amountAOut = reserveA - newReserveA;
 
         // Fees calculation
-        euint32 amountOfFee = TFHE.asEuint32(TFHE.decrypt(amountAOut * TFHE.asEuint32(fee)) / FEE_PERCENT);
+        euint32 amountOfFee = TFHE.asEuint32((TFHE.decrypt(amountAOut) * fee) / FEE_PERCENT);
 
         // Update balance fee of token A
         balanceFeeTokenA = balanceFeeTokenA + amountOfFee;
@@ -256,5 +256,18 @@ contract CFMM is EIP712WithModifier {
         bytes calldata signature
     ) public view onlySignedPublicKey(publicKey, signature) onlyContractOwner returns (bytes memory) {
         return TFHE.reencrypt(constantProduct, publicKey, 0);
+    }
+
+    /**
+     * @dev Function to retrieve the fee balances (tokenA and tokenB) (onlyOwner).
+     * @param publicKey Public key for reencryption.
+     * @param signature Signature for authentication.
+     * @return Encrypted (with passed publicKey) tokenA and tokenB fee balances.
+     */
+    function getFeeBalances(
+        bytes32 publicKey,
+        bytes calldata signature
+    ) public view onlySignedPublicKey(publicKey, signature) onlyContractOwner returns (bytes memory, bytes memory) {
+        return (TFHE.reencrypt(balanceFeeTokenA, publicKey, 0), TFHE.reencrypt(balanceFeeTokenB, publicKey, 0));
     }
 }

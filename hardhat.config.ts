@@ -15,10 +15,12 @@ import "./tasks/getAllowanceTokenB";
 import "./tasks/getBalanceTokenA";
 import "./tasks/getBalanceTokenB";
 import "./tasks/getEthereumAddress";
+import "./tasks/getFeeBalances";
 import "./tasks/mintTokenA";
 import "./tasks/mintTokenB";
 import "./tasks/swapAtoB";
 import "./tasks/swapBtoA";
+import "./tasks/withdrawFee";
 
 const dotenvConfigPath: string = process.env.DOTENV_CONFIG_PATH || "./.env";
 dotenvConfig({ path: resolve(__dirname, dotenvConfigPath) });

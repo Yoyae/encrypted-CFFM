@@ -25,7 +25,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const CFMM = await deploy("CFMM", {
     from: deployer,
-    args: [deployedTokenA.address, deployedTokenB.address],
+    args: [deployedTokenA.address, deployedTokenB.address, 500],
     log: true,
   });
 

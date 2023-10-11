@@ -90,6 +90,8 @@
     "task:addLiquidity": "hardhat task:addLiquidity",
     "task:swapAtoB": "hardhat task:swapAtoB",
     "task:swapBtoA": "hardhat task:swapBtoA",
+    "task:getFeeBalances": "hardhat task:getFeeBalances",
+    "task:withdrawFee": "hardhat task:withdrawFee",
     "task:deployERC20": "hardhat task:deployERC20",
     "task:deployCFMM": "hardhat task:deployCFMM",
     "task:accounts": "hardhat task:accounts",
