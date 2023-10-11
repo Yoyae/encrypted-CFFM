@@ -22,6 +22,14 @@ contract CFMM is EIP712WithModifier {
     // Encrypted constant product of the reserves (invariant in a constant function market maker)
     euint32 internal constantProduct;
 
+    // Swap fee in % (400 = 4%)
+    uint public fee;
+    uint public constant FEE_PERCENT = 10000;
+
+    // Balance of fees of tokenA and tokenB
+    euint32 internal balanceFeeTokenA;
+    euint32 internal balanceFeeTokenB;
+
     // Address of the contract owner
     address public contractOwner;
 
@@ -38,12 +46,13 @@ contract CFMM is EIP712WithModifier {
      * @param _tokenA Address of the first token.
      * @param _tokenB Address of the second token.
      */
-    constructor(address _tokenA, address _tokenB) EIP712WithModifier("Authorization token", "1") {
+    constructor(address _tokenA, address _tokenB, uint _fee) EIP712WithModifier("Authorization token", "1") {
         require(_tokenA != address(0), "Invalid tokenA address");
         require(_tokenB != address(0), "Invalid tokenB address");
         tokenA = _tokenA;
         tokenB = _tokenB;
         contractOwner = msg.sender;
+        fee = _fee;
     }
 
     /**
@@ -133,11 +142,33 @@ contract CFMM is EIP712WithModifier {
     }
 
     /**
+     * @dev Function to withdraw fee tokens
+     * @param to address to receive tokens fee.
+     */
+    function withdrawFee(address to) external onlyContractOwner {
+        // Balance needs to be > 0
+        require(
+            TFHE.decrypt(TFHE.gt(balanceFeeTokenA, 0)) || TFHE.decrypt(TFHE.gt(balanceFeeTokenB, 0)),
+            "balanceFeeTokenA or balanceFeeTokenB must be > 0"
+        );
+
+        // Using temp variables then reset state variable to avoid reentrancy
+        euint32 tempBalanceFeeTokenA = balanceFeeTokenA;
+        euint32 tempBalanceFeeTokenB = balanceFeeTokenB;
+
+        balanceFeeTokenA = TFHE.asEuint32(0);
+        balanceFeeTokenB = TFHE.asEuint32(0);
+
+        IEncryptedERC20(tokenA).transfer(to, tempBalanceFeeTokenA);
+        IEncryptedERC20(tokenB).transfer(to, tempBalanceFeeTokenB);
+    }
+
+    /**
      * @dev Function to calculate the amount of tokenB to receive for a given amount of tokenA.
      * @param amountAIn Amount of tokenA.
      * @return Amount of tokenB to receive.
      */
-    function getAmountBOut(euint32 amountAIn) internal view returns (euint32) {
+    function getAmountBOut(euint32 amountAIn) internal returns (euint32) {
         // Validate the input amount
         require(TFHE.decrypt(TFHE.gt(amountAIn, 0)), "AmountAIn must be > 0");
 
@@ -147,6 +178,16 @@ contract CFMM is EIP712WithModifier {
         // Calculate the corresponding amount of tokenB
         euint32 newReserveB = TFHE.asEuint32(TFHE.decrypt(constantProduct) / TFHE.decrypt(newReserveA));
         euint32 amountBOut = reserveB - newReserveB;
+
+        // Fees calculation
+        euint32 amountOfFee = TFHE.asEuint32(TFHE.decrypt(amountBOut * TFHE.asEuint32(fee)) / FEE_PERCENT);
+
+        // Update balance fee of token B
+        balanceFeeTokenB = balanceFeeTokenB + amountOfFee;
+
+        // Reflect fees for output tokenB
+        amountBOut = amountBOut - amountOfFee;
+
         return amountBOut;
     }
 
@@ -155,7 +196,7 @@ contract CFMM is EIP712WithModifier {
      * @param amountBIn Amount of tokenB.
      * @return Amount of tokenA to receive.
      */
-    function getAmountAOut(euint32 amountBIn) internal view returns (euint32) {
+    function getAmountAOut(euint32 amountBIn) internal returns (euint32) {
         // Validate the input amount
         require(TFHE.decrypt(TFHE.gt(amountBIn, 0)), "AmountBIn must be > 0");
 
@@ -165,6 +206,16 @@ contract CFMM is EIP712WithModifier {
         // Calculate the corresponding amount of tokenA
         euint32 newReserveA = TFHE.asEuint32(TFHE.decrypt(constantProduct) / TFHE.decrypt(newReserveB));
         euint32 amountAOut = reserveA - newReserveA;
+
+        // Fees calculation
+        euint32 amountOfFee = TFHE.asEuint32(TFHE.decrypt(amountAOut * TFHE.asEuint32(fee)) / FEE_PERCENT);
+
+        // Update balance fee of token A
+        balanceFeeTokenA = balanceFeeTokenA + amountOfFee;
+
+        // Reflect fees for output tokenA
+        amountAOut = amountAOut - amountOfFee;
+
         return amountAOut;
     }
 
