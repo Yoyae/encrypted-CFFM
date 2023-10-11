@@ -145,8 +145,8 @@ contract CFMM is EIP712WithModifier {
         // Fees calculation
         euint32 amountOfFee = TFHE.asEuint32((TFHE.decrypt(amountAOut) * fee) / FEE_PERCENT);
 
-        // Update balance fee of token B
-        balanceFeeTokenB = balanceFeeTokenB + amountOfFee;
+        // Update balance fee of token A
+        balanceFeeTokenA = balanceFeeTokenA + amountOfFee;
 
         // Transfer tokens
         IEncryptedERC20(tokenB).transferFrom(msg.sender, address(this), encryptedAmountBIn);
