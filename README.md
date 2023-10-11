@@ -183,6 +183,16 @@ Run the `swapBtoA` task on the local network :
 pnpm task:swapBtoA --network local --amount 100 --account alice
 ```
 
+### withdraw fees
+
+Run the `withdrawFee` task on the local network :
+
+```sh
+pnpm task:withdrawFee --network local --account alice
+```
+
+Note : basic fees are set to 5%.
+
 ### Test
 
 Run the tests with Hardhat:
@@ -201,31 +211,39 @@ pnpm test:CFFM
 
 ```bash
 CFMM
-    Liquidity test
-      ✔ should add liquidity correctly (45093ms)
-      ✔ should revert if 0 liquidity is provided (reserve A) (22076ms)
-      ✔ should revert if 0 liquidity is provided (reserve B) (21704ms)
-      ✔ should revert when overflowing reserveA (22333ms)
-      ✔ should revert when overflowing reserveB (23398ms)
-    Test Swap functionality
-      Swap A to B
-        ✔ should swap correctly (20801ms)
-        ✔ should swap correctly at the limit (22470ms)
-        ✔ should revert after the limit (17448ms)
-        ✔ should revert if 0 token is provided (7469ms)
-      Swap B to A
-        ✔ should swap correctly (22959ms)
-        ✔ should swap correctly at the limit (22333ms)
-        ✔ should revert after the limit (16970ms)
-        ✔ should revert if 0 token is provided (7623ms)
-        ✔ should revert when a negative number is proposed (15625ms)
-    Access control
-      ✔ should revert when non admin calls getReserveA
-      ✔ should revert when non admin calls getReserveB
-      ✔ should revert when non admin calls getConstantProduct
+  Liquidity test
+    ✔ should add liquidity correctly (28664ms)
+    ✔ should revert if 0 liquidity is provided (reserve A) (21080ms)
+    ✔ should revert if 0 liquidity is provided (reserve B) (21128ms)
+    ✔ should revert when overflowing reserveA (25728ms)
+    ✔ should revert when overflowing reserveB (26718ms)
+  Test Swap functionality
+    Swap A to B
+      ✔ should swap correctly (22045ms)
+      ✔ should swap correctly at the limit (22299ms)
+      ✔ should revert after the limit (17132ms)
+      ✔ should revert if 0 token is provided (7415ms)
+      ✔ should revert when a negative number is proposed (15231ms)
+    Swap B to A
+      ✔ should swap correctly (22458ms)
+      ✔ should swap correctly at the limit (21854ms)
+      ✔ should revert after the limit (17185ms)
+      ✔ should revert if 0 token is provided (6729ms)
+      ✔ should revert when a negative number is proposed (16100ms)
+  Fees management
+    ✔ should add balanceFeeTokenB when swapAtoB (21272ms)
+    ✔ should add balanceFeeTokenA when swapBtoA (22315ms)
+    ✔ should proceed fee withdraw with only balanceFeeTokenA > 0 (32287ms)
+    ✔ should proceed fee withdraw with only balanceFeeTokenB > 0 (29262ms)
+    ✔ should revert when there is no balanceFeeTokenA & balanceFeeTokenB (7282ms)
+  Access control
+    ✔ should revert when non admin calls getReserveA
+    ✔ should revert when non admin calls getReserveB
+    ✔ should revert when non admin calls getConstantProduct
+    ✔ should revert when non admin calls getFeeBalances
 
 
-  18 passing (20m)
+24 passing (28m)
 ```
 
 ### Lint Solidity

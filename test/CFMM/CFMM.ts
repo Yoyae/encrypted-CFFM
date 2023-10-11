@@ -154,13 +154,13 @@ describe("CFMM", function () {
     });
     describe("Swap A to B", function () {
       it("should swap correctly", async function () {
-        let encryptedAmountSwap = this.instancesTokenA.alice.encrypt32(100);
+        let encryptedAmountSwap = this.instancesTokenA.alice.encrypt32(1000);
 
         let transaction = await createTransaction(this.tokenA.approve, this.CFMMAddress, encryptedAmountSwap);
         await transaction.wait();
 
         // Swap
-        encryptedAmountSwap = this.instancesCFMM.alice.encrypt32(100);
+        encryptedAmountSwap = this.instancesCFMM.alice.encrypt32(1000);
         transaction = await createTransaction(this.cfmm.swapAtoB, encryptedAmountSwap);
         await transaction.wait();
 
@@ -173,8 +173,8 @@ describe("CFMM", function () {
         const encryptedBalanceB = await this.tokenB.balanceOf(tokenB.publicKey, tokenB.signature);
         const balanceB = this.instancesTokenB.alice.decrypt(this.tokenBAddress, encryptedBalanceB);
 
-        expect(balanceA).to.be.equal(MAX_UINT32 - TOKENA_LIQUIDITY - 100); //Mint - Liquidity - Swap
-        expect(balanceB).to.be.equal(MAX_UINT32 - TOKENB_LIQUIDITY + 10); //Mint - Liquidity + Swap (which is ReserveB - (K / (reserveA + swap)))
+        expect(balanceA).to.be.equal(MAX_UINT32 - TOKENA_LIQUIDITY - 1000); //Mint - Liquidity - Swap
+        expect(balanceB).to.be.equal(MAX_UINT32 - TOKENB_LIQUIDITY + 87); //Mint - Liquidity + Swap - Fees (which is ReserveB - (K / (reserveA + swap)))
 
         // Check reserves and constant product
         const signCFFMAlice = this.instancesCFMM.alice.getTokenSignature(this.CFMMAddress);
@@ -187,8 +187,8 @@ describe("CFMM", function () {
         const encryptedCP = await this.cfmm.getConstantProduct(signCFFMAlice.publicKey, signCFFMAlice.signature);
         const constantProduct = this.instancesCFMM.alice.decrypt(this.CFMMAddress, encryptedCP);
 
-        expect(reserveA).to.be.equal(10100); // 10000 + 100
-        expect(reserveB).to.be.equal(990); // (K / (reserveA + swap)) : ((10000 * 1000) / (10000 + 100))
+        expect(reserveA).to.be.equal(11000); // 10000 + 1000
+        expect(reserveB).to.be.equal(909); // (K / (reserveA + swap) + Fees) : ((10000 * 1000) / (10000 + 1000) + 4)
         expect(constantProduct).to.be.equal(TOKENA_LIQUIDITY * TOKENB_LIQUIDITY);
       });
 
@@ -219,7 +219,7 @@ describe("CFMM", function () {
         expect(balanceA).to.be.equal(
           MAX_UINT32 - TOKENA_LIQUIDITY - (TOKENA_LIQUIDITY * TOKENB_LIQUIDITY - TOKENA_LIQUIDITY),
         ); //Mint - Liquidity - Swap
-        expect(balanceB).to.be.equal(MAX_UINT32 - TOKENB_LIQUIDITY + TOKENB_LIQUIDITY - 1); //Mint - Liquidity + Swap (which is ReserveB - (K / (reserveA + swap)))
+        expect(balanceB).to.be.equal(MAX_UINT32 - TOKENB_LIQUIDITY + TOKENB_LIQUIDITY - 1 - 49); //Mint - Liquidity + Swap (which is ReserveB - (K / (reserveA + swap)) - Fees)
 
         // Check reserves and constant product
         const signCFFMAlice = this.instancesCFMM.alice.getTokenSignature(this.CFMMAddress);
@@ -291,7 +291,7 @@ describe("CFMM", function () {
         const encryptedBalanceB = await this.tokenB.balanceOf(tokenB.publicKey, tokenB.signature);
         const balanceB = this.instancesTokenB.alice.decrypt(this.tokenBAddress, encryptedBalanceB);
 
-        expect(balanceA).to.be.equal(MAX_UINT32 - TOKENA_LIQUIDITY + 197); //Mint - Liquidity + Swap (which is ReserveA - (K / (reserveB + swap)))
+        expect(balanceA).to.be.equal(MAX_UINT32 - TOKENA_LIQUIDITY + 188); //Mint - Liquidity + Swap (which is ReserveA - (K / (reserveB + swap)) + fees)
         expect(balanceB).to.be.equal(MAX_UINT32 - TOKENB_LIQUIDITY - 20); //Mint - Liquidity - Swap
 
         // Check reserves and constant product
@@ -305,7 +305,7 @@ describe("CFMM", function () {
         const encryptedCP = await this.cfmm.getConstantProduct(signCFFMAlice.publicKey, signCFFMAlice.signature);
         const constantProduct = this.instancesCFMM.alice.decrypt(this.CFMMAddress, encryptedCP);
 
-        expect(reserveA).to.be.equal(9803); // (K / (reserveB + swap)) : ((10000 * 1000) / (1000 + 20))
+        expect(reserveA).to.be.equal(9803); // (K / (reserveB + swap)) : ((10000 * 1000) / (1000 + 20) - fees)
         expect(reserveB).to.be.equal(1020); // 1000 + 20
         expect(constantProduct).to.be.equal(TOKENA_LIQUIDITY * TOKENB_LIQUIDITY);
       });
@@ -334,7 +334,7 @@ describe("CFMM", function () {
         const encryptedBalanceB = await this.tokenB.balanceOf(tokenB.publicKey, tokenB.signature);
         const balanceB = this.instancesTokenB.alice.decrypt(this.tokenBAddress, encryptedBalanceB);
 
-        expect(balanceA).to.be.equal(MAX_UINT32 - TOKENA_LIQUIDITY + TOKENA_LIQUIDITY - 1);
+        expect(balanceA).to.be.equal(MAX_UINT32 - TOKENA_LIQUIDITY + TOKENA_LIQUIDITY - 1 - 499);
         expect(balanceB).to.be.equal(
           MAX_UINT32 - TOKENB_LIQUIDITY - (TOKENA_LIQUIDITY * TOKENB_LIQUIDITY - TOKENB_LIQUIDITY),
         );
@@ -389,6 +389,115 @@ describe("CFMM", function () {
     });
   });
 
+  describe("Fees management", function () {
+    beforeEach(async function () {
+      //Add liquidity
+      const encryptedAmountA = this.instancesTokenA.alice.encrypt32(TOKENA_LIQUIDITY);
+      const encryptedAmountB = this.instancesTokenB.alice.encrypt32(TOKENB_LIQUIDITY);
+
+      let transaction = await createTransaction(this.tokenA.approve, this.CFMMAddress, encryptedAmountA);
+      await transaction.wait();
+      transaction = await createTransaction(this.tokenB.approve, this.CFMMAddress, encryptedAmountB);
+      await transaction.wait();
+
+      transaction = await createTransaction(this.cfmm.addLiquidity, encryptedAmountA, encryptedAmountB);
+      await transaction.wait();
+    });
+
+    it("should add balanceFeeTokenB when swapAtoB", async function () {
+      const encryptedAmountSwap = this.instancesTokenA.alice.encrypt32(1000);
+
+      let transaction = await createTransaction(this.tokenA.approve, this.CFMMAddress, encryptedAmountSwap);
+      await transaction.wait();
+      transaction = await createTransaction(this.cfmm.swapAtoB, encryptedAmountSwap);
+      await transaction.wait();
+
+      // Check fee balances
+      const signCFFMAlice = this.instancesCFMM.alice.getTokenSignature(this.CFMMAddress);
+      const encryptedFeeBalances: [string, string] = await this.cfmm.getFeeBalances(
+        signCFFMAlice.publicKey,
+        signCFFMAlice.signature,
+      );
+      const encryptedFeeBalanceTokenA = this.instancesCFMM.alice.decrypt(this.CFMMAddress, encryptedFeeBalances[0]);
+      const encryptedFeeBalanceTokenB = this.instancesCFMM.alice.decrypt(this.CFMMAddress, encryptedFeeBalances[1]);
+
+      expect(encryptedFeeBalanceTokenA).to.be.equal(0);
+      expect(encryptedFeeBalanceTokenB).to.be.equal(4);
+    });
+
+    it("should add balanceFeeTokenA when swapBtoA", async function () {
+      const encryptedAmountSwap = this.instancesTokenB.alice.encrypt32(20);
+
+      let transaction = await createTransaction(this.tokenB.approve, this.CFMMAddress, encryptedAmountSwap);
+      await transaction.wait();
+      transaction = await createTransaction(this.cfmm.swapBtoA, encryptedAmountSwap);
+      await transaction.wait();
+
+      // Check fee balances
+      const signCFFMAlice = this.instancesCFMM.alice.getTokenSignature(this.CFMMAddress);
+      const encryptedFeeBalances: [string, string] = await this.cfmm.getFeeBalances(
+        signCFFMAlice.publicKey,
+        signCFFMAlice.signature,
+      );
+      const encryptedFeeBalanceTokenA = this.instancesCFMM.alice.decrypt(this.CFMMAddress, encryptedFeeBalances[0]);
+      const encryptedFeeBalanceTokenB = this.instancesCFMM.alice.decrypt(this.CFMMAddress, encryptedFeeBalances[1]);
+
+      expect(encryptedFeeBalanceTokenA).to.be.equal(9);
+      expect(encryptedFeeBalanceTokenB).to.be.equal(0);
+    });
+
+    it("should proceed fee withdraw with only balanceFeeTokenA > 0", async function () {
+      const encryptedAmountSwap = this.instancesTokenB.alice.encrypt32(20);
+
+      let transaction = await createTransaction(this.tokenB.approve, this.CFMMAddress, encryptedAmountSwap);
+      await transaction.wait();
+      transaction = await createTransaction(this.cfmm.swapBtoA, encryptedAmountSwap);
+      await transaction.wait();
+      transaction = await createTransaction(this.cfmm.withdrawFee, this.signers.alice.address);
+      await transaction.wait();
+
+      // Check fee balances
+      const signCFFMAlice = this.instancesCFMM.alice.getTokenSignature(this.CFMMAddress);
+      const encryptedFeeBalances: [string, string] = await this.cfmm.getFeeBalances(
+        signCFFMAlice.publicKey,
+        signCFFMAlice.signature,
+      );
+      const encryptedFeeBalanceTokenA = this.instancesCFMM.alice.decrypt(this.CFMMAddress, encryptedFeeBalances[0]);
+      const encryptedFeeBalanceTokenB = this.instancesCFMM.alice.decrypt(this.CFMMAddress, encryptedFeeBalances[1]);
+
+      expect(encryptedFeeBalanceTokenA).to.be.equal(0);
+      expect(encryptedFeeBalanceTokenB).to.be.equal(0);
+    });
+
+    it("should proceed fee withdraw with only balanceFeeTokenB > 0", async function () {
+      const encryptedAmountSwap = this.instancesTokenA.alice.encrypt32(100);
+
+      let transaction = await createTransaction(this.tokenA.approve, this.CFMMAddress, encryptedAmountSwap);
+      await transaction.wait();
+      transaction = await createTransaction(this.cfmm.swapAtoB, encryptedAmountSwap);
+      await transaction.wait();
+      transaction = await createTransaction(this.cfmm.withdrawFee, this.signers.alice.address);
+      await transaction.wait();
+
+      // Check fee balances
+      const signCFFMAlice = this.instancesCFMM.alice.getTokenSignature(this.CFMMAddress);
+      const encryptedFeeBalances: [string, string] = await this.cfmm.getFeeBalances(
+        signCFFMAlice.publicKey,
+        signCFFMAlice.signature,
+      );
+      const encryptedFeeBalanceTokenA = this.instancesCFMM.alice.decrypt(this.CFMMAddress, encryptedFeeBalances[0]);
+      const encryptedFeeBalanceTokenB = this.instancesCFMM.alice.decrypt(this.CFMMAddress, encryptedFeeBalances[1]);
+
+      expect(encryptedFeeBalanceTokenA).to.be.equal(0);
+      expect(encryptedFeeBalanceTokenB).to.be.equal(0);
+    });
+
+    it("should revert when there is no balanceFeeTokenA & balanceFeeTokenB", async function () {
+      let transaction = await createTransaction(this.cfmm.withdrawFee, this.signers.alice.address);
+      await expect(transaction.wait()).to.be.reverted;
+    });
+  });
+
   describe("Access control", function () {
     it("should revert when non admin calls getReserveA", async function () {
       const signCFFMBob = this.instancesCFMM.bob.getTokenSignature(this.CFMMAddress);
@@ -403,6 +512,11 @@ describe("CFMM", function () {
     it("should revert when non admin calls getConstantProduct", async function () {
       const signCFFMBob = this.instancesCFMM.bob.getTokenSignature(this.CFMMAddress);
       await expect(this.cfmm.getConstantProduct(signCFFMBob.publicKey, signCFFMBob.signature)).to.be.reverted;
+    });
+
+    it("should revert when non admin calls getFeeBalances", async function () {
+      const signCFFMBob = this.instancesCFMM.bob.getTokenSignature(this.CFMMAddress);
+      await expect(this.cfmm.getFeeBalances(signCFFMBob.publicKey, signCFFMBob.signature)).to.be.reverted;
     });
   });
 });
