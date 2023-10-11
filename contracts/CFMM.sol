@@ -159,10 +159,7 @@ contract CFMM is EIP712WithModifier {
      */
     function withdrawFee(address to) external onlyContractOwner {
         // Balance needs to be > 0
-        require(
-            TFHE.decrypt(TFHE.gt(balanceFeeTokenA | balanceFeeTokenB, 0)),
-            "balanceFeeTokenA or balanceFeeTokenB must be > 0"
-        );
+        require(TFHE.decrypt(TFHE.gt(balanceFeeTokenA | balanceFeeTokenB, 0)), "balanceFeeToken must be > 0");
 
         // Using temp variables then reset state variable to avoid reentrancy
         euint32 tempBalanceFeeTokenA = balanceFeeTokenA;

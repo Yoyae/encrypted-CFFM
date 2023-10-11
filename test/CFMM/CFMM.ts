@@ -493,7 +493,7 @@ describe("CFMM", function () {
     });
 
     it("should revert when there is no balanceFeeTokenA & balanceFeeTokenB", async function () {
-      let transaction = await createTransaction(this.cfmm.withdrawFee, this.signers.alice.address);
+      const transaction = await createTransaction(this.cfmm.withdrawFee, this.signers.alice.address);
       await expect(transaction.wait()).to.be.reverted;
     });
   });

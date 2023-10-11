@@ -11,38 +11,6 @@ task("task:withdrawFee")
     const { ethers, deployments } = hre;
     const signers = await getSigners(ethers);
 
-    //Token A
-    const tokenA = await deployments.get("tokenA");
-    console.log("tokenA deployed to: ", await tokenA.address);
-    const tokenAAddress = await tokenA.address;
-    const instancesTokenA = await createInstances(tokenAAddress, ethers, signers);
-    const tokenAContract = await ethers.getContractAt("EncryptedERC20", tokenAAddress);
-    const generateTokenA = instancesTokenA[taskArguments.account as keyof FhevmInstances].generateToken({
-      verifyingContract: tokenAAddress,
-    });
-    const signatureTokenA = await signers[taskArguments.account as keyof Signers].signTypedData(
-      generateTokenA.token.domain,
-      { Reencrypt: generateTokenA.token.types.Reencrypt },
-      generateTokenA.token.message,
-    );
-    instancesTokenA[taskArguments.account as keyof FhevmInstances].setTokenSignature(tokenAAddress, signatureTokenA);
-
-    //Token B
-    const tokenB = await deployments.get("tokenB");
-    console.log("tokenB deployed to: ", await tokenB.address);
-    const tokenBAddress = await tokenB.address;
-    const instancesTokenB = await createInstances(tokenBAddress, ethers, signers);
-    const tokenBContract = await ethers.getContractAt("EncryptedERC20", tokenBAddress);
-    const generateTokenB = instancesTokenB[taskArguments.account as keyof FhevmInstances].generateToken({
-      verifyingContract: tokenBAddress,
-    });
-    const signatureTokenB = await signers[taskArguments.account as keyof Signers].signTypedData(
-      generateTokenB.token.domain,
-      { Reencrypt: generateTokenB.token.types.Reencrypt },
-      generateTokenB.token.message,
-    );
-    instancesTokenB[taskArguments.account as keyof FhevmInstances].setTokenSignature(tokenBAddress, signatureTokenB);
-
     //CFMM
     const cfmm = await deployments.get("CFMM");
     console.log("CFMM deployed to: ", await cfmm.address);
