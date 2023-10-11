@@ -67,10 +67,22 @@ contract CFMM is EIP712WithModifier {
     error UnderflowError();
 
     /**
+     * @dev The caller account is not authorized to perform an operation.
+     */
+    error UnauthorizedAccount(address account);
+
+    /**
+     * @dev The caller account is not authorized to perform an operation.
+     */
+    error InvalidAddress(address account);
+
+    /**
      * @dev Modifier to restrict access to only the contract owner.
      */
     modifier onlyContractOwner() {
-        require(msg.sender == contractOwner, "Only the contract owner");
+        if (contractOwner != msg.sender) {
+            revert UnauthorizedAccount(msg.sender);
+        }
         _;
     }
 
@@ -80,8 +92,12 @@ contract CFMM is EIP712WithModifier {
      * @param _tokenB Address of the second token.
      */
     constructor(address _tokenA, address _tokenB, uint _fee) EIP712WithModifier("Authorization token", "1") {
-        require(_tokenA != address(0), "Invalid tokenA address");
-        require(_tokenB != address(0), "Invalid tokenB address");
+        if (_tokenA == address(0)) {
+            revert InvalidAddress(_tokenA);
+        }
+        if (_tokenB == address(0)) {
+            revert InvalidAddress(address(0));
+        }
         tokenA = _tokenA;
         tokenB = _tokenB;
         contractOwner = msg.sender;
@@ -96,19 +112,19 @@ contract CFMM is EIP712WithModifier {
     function addLiquidity(bytes calldata encryptedAmountA, bytes calldata encryptedAmountB) external {
         // Validate the input amounts
         euint32 amountA = TFHE.asEuint32(encryptedAmountA);
-        if (TFHE.decrypt(TFHE.gt(amountA, 0))) {
+        if (!TFHE.decrypt(TFHE.gt(amountA, 0))) {
             revert InvalidAmount();
         }
         euint32 amountB = TFHE.asEuint32(encryptedAmountB);
-        if (TFHE.decrypt(TFHE.gt(amountB, 0))) {
+        if (!TFHE.decrypt(TFHE.gt(amountB, 0))) {
             revert InvalidAmount();
         }
 
         // Check for overflow when adding to reserves
-        if (TFHE.decrypt(TFHE.ge(amountA + amountB, amountA))) {
+        if (!TFHE.decrypt(TFHE.ge(amountA + amountB, amountA))) {
             revert OverflowError();
         }
-        if (TFHE.decrypt(TFHE.ge(amountA + amountB, amountB))) {
+        if (!TFHE.decrypt(TFHE.ge(amountA + amountB, amountB))) {
             revert OverflowError();
         }
 
@@ -132,7 +148,7 @@ contract CFMM is EIP712WithModifier {
     function swap(TokenPair pair, bytes calldata encryptedAmountIn) external {
         // Validate the input amount
         euint32 amountIn = TFHE.asEuint32(encryptedAmountIn);
-        if (TFHE.decrypt(TFHE.gt(amountIn, 0))) {
+        if (!TFHE.decrypt(TFHE.gt(amountIn, 0))) {
             revert InvalidAmount();
         }
 
@@ -149,7 +165,7 @@ contract CFMM is EIP712WithModifier {
      */
     function withdrawFee(address to) external onlyContractOwner {
         // Balance needs to be > 0
-        if (TFHE.decrypt(TFHE.gt(balanceFeeTokenA | balanceFeeTokenB, 0))) {
+        if (!TFHE.decrypt(TFHE.gt(balanceFeeTokenA | balanceFeeTokenB, 0))) {
             revert InvalidAmount();
         }
 
@@ -171,15 +187,15 @@ contract CFMM is EIP712WithModifier {
     function _swapAtoB(euint32 amountAIn) internal {
         // Calculate the amount of tokenB to be received and validate it
         euint32 amountBOut = _getAmountBOut(amountAIn);
-        if (TFHE.decrypt(TFHE.gt(amountBOut, 0))) {
+        if (!TFHE.decrypt(TFHE.gt(amountBOut, 0))) {
             revert InvalidAmount();
         }
 
         // Check for overflow and underflow
-        if (TFHE.decrypt(TFHE.ge(amountAIn + reserveA, reserveA))) {
+        if (!TFHE.decrypt(TFHE.ge(amountAIn + reserveA, reserveA))) {
             revert OverflowError();
         }
-        if (TFHE.decrypt(TFHE.le(amountBOut, reserveB))) {
+        if (!TFHE.decrypt(TFHE.le(amountBOut, reserveB))) {
             revert UnderflowError();
         }
 
@@ -188,7 +204,9 @@ contract CFMM is EIP712WithModifier {
         reserveB = reserveB - amountBOut;
 
         // Ensure reserveB remains positive
-        require(TFHE.decrypt(TFHE.ge(reserveB, 1)), "ReserveB must be > 0");
+        if (!TFHE.decrypt(TFHE.gt(reserveB, 0))) {
+            revert InvalidAmount();
+        }
 
         // Fees calculation
         euint32 amountOfFee = TFHE.asEuint32((TFHE.decrypt(amountBOut) * fee) / FEE_PERCENT);
@@ -208,13 +226,15 @@ contract CFMM is EIP712WithModifier {
     function _swapBtoA(euint32 amountBIn) internal {
         // Calculate the amount of tokenA to be received
         euint32 amountAOut = _getAmountAOut(amountBIn);
-        require(TFHE.decrypt(TFHE.gt(amountAOut, 0)), "AmountAOut must be > 0");
+        if (!TFHE.decrypt(TFHE.gt(amountAOut, 0))) {
+            revert InvalidAmount();
+        }
 
         // Check for overflow and underflow
-        if (TFHE.decrypt(TFHE.ge(amountBIn + reserveB, reserveB))) {
+        if (!TFHE.decrypt(TFHE.ge(amountBIn + reserveB, reserveB))) {
             revert OverflowError();
         }
-        if (TFHE.decrypt(TFHE.le(amountAOut, reserveA))) {
+        if (!TFHE.decrypt(TFHE.le(amountAOut, reserveA))) {
             revert UnderflowError();
         }
 
@@ -223,7 +243,7 @@ contract CFMM is EIP712WithModifier {
         reserveA = reserveA - amountAOut;
 
         // Ensure reserveA remains positive
-        if (TFHE.decrypt(TFHE.ge(reserveA, 1))) {
+        if (!TFHE.decrypt(TFHE.ge(reserveA, 1))) {
             revert InvalidAmount();
         }
 
@@ -245,7 +265,7 @@ contract CFMM is EIP712WithModifier {
      */
     function _getAmountBOut(euint32 amountAIn) internal view returns (euint32) {
         // Validate the input amount
-        if (TFHE.decrypt(TFHE.gt(amountAIn, 0))) {
+        if (!TFHE.decrypt(TFHE.gt(amountAIn, 0))) {
             revert InvalidAmount();
         }
 
@@ -266,7 +286,7 @@ contract CFMM is EIP712WithModifier {
      */
     function _getAmountAOut(euint32 amountBIn) internal view returns (euint32) {
         // Validate the input amount
-        if (TFHE.decrypt(TFHE.gt(amountBIn, 0))) {
+        if (!TFHE.decrypt(TFHE.gt(amountBIn, 0))) {
             revert InvalidAmount();
         }
 
