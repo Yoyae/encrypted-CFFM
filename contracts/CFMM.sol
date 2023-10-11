@@ -8,45 +8,59 @@ import "./IEncryptedERC20.sol";
 
 /**
  * @title CFMM (Constant Function Market Maker) Contract
- * @dev This contract implements a encrypted liquidity pool where you can trade two tokens.
+ * @dev This contract implements an encrypted liquidity pool where you can trade two tokens.
  */
 contract CFMM is EIP712WithModifier {
     // Addresses of the two tokens to be traded
+    // @dev Address of tokenA
     address public tokenA;
+
+    // @dev Address of tokenB
     address public tokenB;
 
-    // Address of the contract owner
+    // @dev Address of the contract owner
     address public contractOwner;
 
     // Swap fee in % (400 = 4%)
+    // @dev Swap fee percentage
     uint public fee;
+
+    // @dev Constant representing 100% for fee calculations
     uint public constant FEE_PERCENT = 10000;
 
     // Reserve amounts for tokenA and tokenB (encrypted)
+    // @dev Encrypted reserve amount for tokenA
     euint32 internal reserveA;
+
+    // @dev Encrypted reserve amount for tokenB
     euint32 internal reserveB;
 
     // Encrypted constant product of the reserves (invariant in a constant function market maker)
+    // @dev Encrypted constant product of the reserves
     euint32 internal constantProduct;
 
-    // Balance of fees of tokenA and tokenB
+    // @dev Balance of fee tokens for tokenA
     euint32 internal balanceFeeTokenA;
+
+    // @dev Balance of fee tokens for tokenB
     euint32 internal balanceFeeTokenB;
 
     // Pair token for swap
+    // @dev Enum representing the pair of tokens for swap
     enum TokenPair {
         TokenA_TokenB,
         TokenB_TokenA
     }
-
     /**
      * @dev The amount passed doesn't passed the check (>0)
      */
     error InvalidAmount();
+
     /**
      * @dev Calculation leads to an overflow
      */
     error OverflowError();
+
     /**
      * @dev Calculation leads to an underflow
      */
@@ -112,6 +126,7 @@ contract CFMM is EIP712WithModifier {
 
     /**
      * @dev Function to swap token.
+     * @param pair The pair of tokens to swap.
      * @param encryptedAmountIn Encrypted amount of tokenA to swap.
      */
     function swap(TokenPair pair, bytes calldata encryptedAmountIn) external {
