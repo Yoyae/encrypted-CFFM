@@ -40,6 +40,19 @@ contract CFMM is EIP712WithModifier {
     }
 
     /**
+     * @dev The amount passed doesn't passed the check (>0)
+     */
+    error InvalidAmount();
+    /**
+     * @dev Calculation leads to an overflow
+     */
+    error OverflowError();
+    /**
+     * @dev Calculation leads to an underflow
+     */
+    error UnderflowError();
+
+    /**
      * @dev Modifier to restrict access to only the contract owner.
      */
     modifier onlyContractOwner() {
@@ -69,13 +82,21 @@ contract CFMM is EIP712WithModifier {
     function addLiquidity(bytes calldata encryptedAmountA, bytes calldata encryptedAmountB) external {
         // Validate the input amounts
         euint32 amountA = TFHE.asEuint32(encryptedAmountA);
-        require(TFHE.decrypt(TFHE.gt(amountA, 0)), "AmountA must be > 0");
+        if (TFHE.decrypt(TFHE.gt(amountA, 0))) {
+            revert InvalidAmount();
+        }
         euint32 amountB = TFHE.asEuint32(encryptedAmountB);
-        require(TFHE.decrypt(TFHE.gt(amountB, 0)), "AmountB must be > 0");
+        if (TFHE.decrypt(TFHE.gt(amountB, 0))) {
+            revert InvalidAmount();
+        }
 
         // Check for overflow when adding to reserves
-        require(TFHE.decrypt(TFHE.ge(amountA + amountB, amountA)), "Overflow check failed");
-        require(TFHE.decrypt(TFHE.ge(amountA + amountB, amountB)), "Overflow check failed");
+        if (TFHE.decrypt(TFHE.ge(amountA + amountB, amountA))) {
+            revert OverflowError();
+        }
+        if (TFHE.decrypt(TFHE.ge(amountA + amountB, amountB))) {
+            revert OverflowError();
+        }
 
         // Update reserveA and reserveB
         reserveA = reserveA + amountA;
@@ -96,7 +117,9 @@ contract CFMM is EIP712WithModifier {
     function swap(TokenPair pair, bytes calldata encryptedAmountIn) external {
         // Validate the input amount
         euint32 amountIn = TFHE.asEuint32(encryptedAmountIn);
-        require(TFHE.decrypt(TFHE.gt(amountIn, 0)), "AmountAIn must be > 0");
+        if (TFHE.decrypt(TFHE.gt(amountIn, 0))) {
+            revert InvalidAmount();
+        }
 
         if (pair == TokenPair.TokenA_TokenB) {
             _swapAtoB(amountIn);
@@ -111,7 +134,9 @@ contract CFMM is EIP712WithModifier {
      */
     function withdrawFee(address to) external onlyContractOwner {
         // Balance needs to be > 0
-        require(TFHE.decrypt(TFHE.gt(balanceFeeTokenA | balanceFeeTokenB, 0)), "balanceFeeToken must be > 0");
+        if (TFHE.decrypt(TFHE.gt(balanceFeeTokenA | balanceFeeTokenB, 0))) {
+            revert InvalidAmount();
+        }
 
         // Using temp variables then reset state variable to avoid reentrancy
         euint32 tempBalanceFeeTokenA = balanceFeeTokenA;
@@ -131,11 +156,17 @@ contract CFMM is EIP712WithModifier {
     function _swapAtoB(euint32 amountAIn) internal {
         // Calculate the amount of tokenB to be received and validate it
         euint32 amountBOut = _getAmountBOut(amountAIn);
-        require(TFHE.decrypt(TFHE.gt(amountBOut, 0)), "AmountBOut must be > 0");
+        if (TFHE.decrypt(TFHE.gt(amountBOut, 0))) {
+            revert InvalidAmount();
+        }
 
         // Check for overflow and underflow
-        require(TFHE.decrypt(TFHE.ge(amountAIn + reserveA, reserveA)), "Overflow failed");
-        require(TFHE.decrypt(TFHE.le(amountBOut, reserveB)), "Underflow failed");
+        if (TFHE.decrypt(TFHE.ge(amountAIn + reserveA, reserveA))) {
+            revert OverflowError();
+        }
+        if (TFHE.decrypt(TFHE.le(amountBOut, reserveB))) {
+            revert UnderflowError();
+        }
 
         // Update reserves
         reserveA = reserveA + amountAIn;
@@ -165,15 +196,21 @@ contract CFMM is EIP712WithModifier {
         require(TFHE.decrypt(TFHE.gt(amountAOut, 0)), "AmountAOut must be > 0");
 
         // Check for overflow and underflow
-        require(TFHE.decrypt(TFHE.ge(amountBIn + reserveB, reserveB)), "Overflow failed");
-        require(TFHE.decrypt(TFHE.le(amountAOut, reserveA)), "Underflow failed");
+        if (TFHE.decrypt(TFHE.ge(amountBIn + reserveB, reserveB))) {
+            revert OverflowError();
+        }
+        if (TFHE.decrypt(TFHE.le(amountAOut, reserveA))) {
+            revert UnderflowError();
+        }
 
         // Update reserves
         reserveB = reserveB + amountBIn;
         reserveA = reserveA - amountAOut;
 
         // Ensure reserveA remains positive
-        require(TFHE.decrypt(TFHE.ge(reserveA, 1)), "ReserveA must be > 0");
+        if (TFHE.decrypt(TFHE.ge(reserveA, 1))) {
+            revert InvalidAmount();
+        }
 
         // Fees calculation
         euint32 amountOfFee = TFHE.asEuint32((TFHE.decrypt(amountAOut) * fee) / FEE_PERCENT);
@@ -193,7 +230,9 @@ contract CFMM is EIP712WithModifier {
      */
     function _getAmountBOut(euint32 amountAIn) internal view returns (euint32) {
         // Validate the input amount
-        require(TFHE.decrypt(TFHE.gt(amountAIn, 0)), "AmountAIn must be > 0");
+        if (TFHE.decrypt(TFHE.gt(amountAIn, 0))) {
+            revert InvalidAmount();
+        }
 
         // Calculate new reserveA after the swap
         euint32 newReserveA = reserveA + amountAIn;
@@ -212,7 +251,9 @@ contract CFMM is EIP712WithModifier {
      */
     function _getAmountAOut(euint32 amountBIn) internal view returns (euint32) {
         // Validate the input amount
-        require(TFHE.decrypt(TFHE.gt(amountBIn, 0)), "AmountBIn must be > 0");
+        if (TFHE.decrypt(TFHE.gt(amountBIn, 0))) {
+            revert InvalidAmount();
+        }
 
         // Calculate new reserveB after the swap
         euint32 newReserveB = reserveB + amountBIn;
