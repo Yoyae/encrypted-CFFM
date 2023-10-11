@@ -15,6 +15,13 @@ contract CFMM is EIP712WithModifier {
     address public tokenA;
     address public tokenB;
 
+    // Address of the contract owner
+    address public contractOwner;
+
+    // Swap fee in % (400 = 4%)
+    uint public fee;
+    uint public constant FEE_PERCENT = 10000;
+
     // Reserve amounts for tokenA and tokenB (encrypted)
     euint32 internal reserveA;
     euint32 internal reserveB;
@@ -22,16 +29,15 @@ contract CFMM is EIP712WithModifier {
     // Encrypted constant product of the reserves (invariant in a constant function market maker)
     euint32 internal constantProduct;
 
-    // Swap fee in % (400 = 4%)
-    uint public fee;
-    uint public constant FEE_PERCENT = 10000;
-
     // Balance of fees of tokenA and tokenB
     euint32 internal balanceFeeTokenA;
     euint32 internal balanceFeeTokenB;
 
-    // Address of the contract owner
-    address public contractOwner;
+    // Pair token for swap
+    enum TokenPair {
+        TokenA_TokenB,
+        TokenB_TokenA
+    }
 
     /**
      * @dev Modifier to restrict access to only the contract owner.
@@ -84,73 +90,19 @@ contract CFMM is EIP712WithModifier {
     }
 
     /**
-     * @dev Function to swap tokenA for tokenB.
-     * @param encryptedAmountAIn Encrypted amount of tokenA to swap.
+     * @dev Function to swap token.
+     * @param encryptedAmountIn Encrypted amount of tokenA to swap.
      */
-    function swapAtoB(bytes calldata encryptedAmountAIn) external {
+    function swap(TokenPair pair, bytes calldata encryptedAmountIn) external {
         // Validate the input amount
-        euint32 amountAIn = TFHE.asEuint32(encryptedAmountAIn);
-        require(TFHE.decrypt(TFHE.gt(amountAIn, 0)), "AmountAIn must be > 0");
+        euint32 amountIn = TFHE.asEuint32(encryptedAmountIn);
+        require(TFHE.decrypt(TFHE.gt(amountIn, 0)), "AmountAIn must be > 0");
 
-        // Calculate the amount of tokenB to be received and validate it
-        euint32 amountBOut = getAmountBOut(amountAIn);
-        require(TFHE.decrypt(TFHE.gt(amountBOut, 0)), "AmountBOut must be > 0");
-
-        // Check for overflow and underflow
-        require(TFHE.decrypt(TFHE.ge(amountAIn + reserveA, reserveA)), "Overflow failed");
-        require(TFHE.decrypt(TFHE.le(amountBOut, reserveB)), "Underflow failed");
-
-        // Update reserves
-        reserveA = reserveA + amountAIn;
-        reserveB = reserveB - amountBOut;
-
-        // Ensure reserveB remains positive
-        require(TFHE.decrypt(TFHE.ge(reserveB, 1)), "ReserveB must be > 0");
-
-        // Fees calculation
-        euint32 amountOfFee = TFHE.asEuint32((TFHE.decrypt(amountBOut) * fee) / FEE_PERCENT);
-
-        // Update balance fee of token B
-        balanceFeeTokenB = balanceFeeTokenB + amountOfFee;
-
-        // Transfer tokens
-        IEncryptedERC20(tokenA).transferFrom(msg.sender, address(this), encryptedAmountAIn);
-        IEncryptedERC20(tokenB).transfer(msg.sender, amountBOut - amountOfFee);
-    }
-
-    /**
-     * @dev Function to swap tokenB for tokenA.
-     * @param encryptedAmountBIn Encrypted amount of tokenB to swap.
-     */
-    function swapBtoA(bytes calldata encryptedAmountBIn) external {
-        // Validate the input amount
-        euint32 amountBIn = TFHE.asEuint32(encryptedAmountBIn);
-        require(TFHE.decrypt(TFHE.gt(amountBIn, 0)), "AmountBIn must be > 0");
-
-        // Calculate the amount of tokenA to be received
-        euint32 amountAOut = getAmountAOut(amountBIn);
-        require(TFHE.decrypt(TFHE.gt(amountAOut, 0)), "AmountAOut must be > 0");
-
-        // Check for overflow and underflow
-        require(TFHE.decrypt(TFHE.ge(amountBIn + reserveB, reserveB)), "Overflow failed");
-        require(TFHE.decrypt(TFHE.le(amountAOut, reserveA)), "Underflow failed");
-
-        // Update reserves
-        reserveB = reserveB + amountBIn;
-        reserveA = reserveA - amountAOut;
-
-        // Ensure reserveA remains positive
-        require(TFHE.decrypt(TFHE.ge(reserveA, 1)), "ReserveA must be > 0");
-
-        // Fees calculation
-        euint32 amountOfFee = TFHE.asEuint32((TFHE.decrypt(amountAOut) * fee) / FEE_PERCENT);
-
-        // Update balance fee of token A
-        balanceFeeTokenA = balanceFeeTokenA + amountOfFee;
-
-        // Transfer tokens
-        IEncryptedERC20(tokenB).transferFrom(msg.sender, address(this), encryptedAmountBIn);
-        IEncryptedERC20(tokenA).transfer(msg.sender, amountAOut - amountOfFee);
+        if (pair == TokenPair.TokenA_TokenB) {
+            _swapAtoB(amountIn);
+        } else if (pair == TokenPair.TokenB_TokenA) {
+            _swapBtoA(amountIn);
+        }
     }
 
     /**
@@ -173,11 +125,73 @@ contract CFMM is EIP712WithModifier {
     }
 
     /**
-     * @dev Function to calculate the amount of tokenB to receive for a given amount of tokenA.
+     * @dev Internal function to swap tokenA for tokenB.
+     * @param amountAIn Encrypted amount of tokenA to swap.
+     */
+    function _swapAtoB(euint32 amountAIn) internal {
+        // Calculate the amount of tokenB to be received and validate it
+        euint32 amountBOut = _getAmountBOut(amountAIn);
+        require(TFHE.decrypt(TFHE.gt(amountBOut, 0)), "AmountBOut must be > 0");
+
+        // Check for overflow and underflow
+        require(TFHE.decrypt(TFHE.ge(amountAIn + reserveA, reserveA)), "Overflow failed");
+        require(TFHE.decrypt(TFHE.le(amountBOut, reserveB)), "Underflow failed");
+
+        // Update reserves
+        reserveA = reserveA + amountAIn;
+        reserveB = reserveB - amountBOut;
+
+        // Ensure reserveB remains positive
+        require(TFHE.decrypt(TFHE.ge(reserveB, 1)), "ReserveB must be > 0");
+
+        // Fees calculation
+        euint32 amountOfFee = TFHE.asEuint32((TFHE.decrypt(amountBOut) * fee) / FEE_PERCENT);
+
+        // Update balance fee of token B
+        balanceFeeTokenB = balanceFeeTokenB + amountOfFee;
+
+        // Transfer tokens
+        IEncryptedERC20(tokenA).transferFrom(msg.sender, address(this), amountAIn);
+        IEncryptedERC20(tokenB).transfer(msg.sender, amountBOut - amountOfFee);
+    }
+
+    /**
+     * @dev Internal function to swap tokenB for tokenA.
+     * @param amountBIn Encrypted amount of tokenB to swap.
+     */
+    function _swapBtoA(euint32 amountBIn) internal {
+        // Calculate the amount of tokenA to be received
+        euint32 amountAOut = _getAmountAOut(amountBIn);
+        require(TFHE.decrypt(TFHE.gt(amountAOut, 0)), "AmountAOut must be > 0");
+
+        // Check for overflow and underflow
+        require(TFHE.decrypt(TFHE.ge(amountBIn + reserveB, reserveB)), "Overflow failed");
+        require(TFHE.decrypt(TFHE.le(amountAOut, reserveA)), "Underflow failed");
+
+        // Update reserves
+        reserveB = reserveB + amountBIn;
+        reserveA = reserveA - amountAOut;
+
+        // Ensure reserveA remains positive
+        require(TFHE.decrypt(TFHE.ge(reserveA, 1)), "ReserveA must be > 0");
+
+        // Fees calculation
+        euint32 amountOfFee = TFHE.asEuint32((TFHE.decrypt(amountAOut) * fee) / FEE_PERCENT);
+
+        // Update balance fee of token A
+        balanceFeeTokenA = balanceFeeTokenA + amountOfFee;
+
+        // Transfer tokens
+        IEncryptedERC20(tokenB).transferFrom(msg.sender, address(this), amountBIn);
+        IEncryptedERC20(tokenA).transfer(msg.sender, amountAOut - amountOfFee);
+    }
+
+    /**
+     * @dev Internal function to calculate the amount of tokenB to receive for a given amount of tokenA.
      * @param amountAIn Amount of tokenA.
      * @return Amount of tokenB to receive.
      */
-    function getAmountBOut(euint32 amountAIn) internal view returns (euint32) {
+    function _getAmountBOut(euint32 amountAIn) internal view returns (euint32) {
         // Validate the input amount
         require(TFHE.decrypt(TFHE.gt(amountAIn, 0)), "AmountAIn must be > 0");
 
@@ -192,11 +206,11 @@ contract CFMM is EIP712WithModifier {
     }
 
     /**
-     * @dev Function to calculate the amount of tokenA to receive for a given amount of tokenB.
+     * @dev Internal function to calculate the amount of tokenA to receive for a given amount of tokenB.
      * @param amountBIn Amount of tokenB.
      * @return Amount of tokenA to receive.
      */
-    function getAmountAOut(euint32 amountBIn) internal view returns (euint32) {
+    function _getAmountAOut(euint32 amountBIn) internal view returns (euint32) {
         // Validate the input amount
         require(TFHE.decrypt(TFHE.gt(amountBIn, 0)), "AmountBIn must be > 0");
 
@@ -219,7 +233,7 @@ contract CFMM is EIP712WithModifier {
     function getReserveA(
         bytes32 publicKey,
         bytes calldata signature
-    ) public view onlySignedPublicKey(publicKey, signature) onlyContractOwner returns (bytes memory) {
+    ) external view onlySignedPublicKey(publicKey, signature) onlyContractOwner returns (bytes memory) {
         return TFHE.reencrypt(reserveA, publicKey, 0);
     }
 
@@ -232,7 +246,7 @@ contract CFMM is EIP712WithModifier {
     function getReserveB(
         bytes32 publicKey,
         bytes calldata signature
-    ) public view onlySignedPublicKey(publicKey, signature) onlyContractOwner returns (bytes memory) {
+    ) external view onlySignedPublicKey(publicKey, signature) onlyContractOwner returns (bytes memory) {
         return TFHE.reencrypt(reserveB, publicKey, 0);
     }
 
@@ -245,7 +259,7 @@ contract CFMM is EIP712WithModifier {
     function getConstantProduct(
         bytes32 publicKey,
         bytes calldata signature
-    ) public view onlySignedPublicKey(publicKey, signature) onlyContractOwner returns (bytes memory) {
+    ) external view onlySignedPublicKey(publicKey, signature) onlyContractOwner returns (bytes memory) {
         return TFHE.reencrypt(constantProduct, publicKey, 0);
     }
 
@@ -258,7 +272,7 @@ contract CFMM is EIP712WithModifier {
     function getFeeBalances(
         bytes32 publicKey,
         bytes calldata signature
-    ) public view onlySignedPublicKey(publicKey, signature) onlyContractOwner returns (bytes memory, bytes memory) {
+    ) external view onlySignedPublicKey(publicKey, signature) onlyContractOwner returns (bytes memory, bytes memory) {
         return (TFHE.reencrypt(balanceFeeTokenA, publicKey, 0), TFHE.reencrypt(balanceFeeTokenB, publicKey, 0));
     }
 }

@@ -16,6 +16,24 @@ address tokenA
 address tokenB
 ```
 
+### contractOwner
+
+```solidity
+address contractOwner
+```
+
+### fee
+
+```solidity
+uint256 fee
+```
+
+### FEE_PERCENT
+
+```solidity
+uint256 FEE_PERCENT
+```
+
 ### reserveA
 
 ```solidity
@@ -34,18 +52,6 @@ euint32 reserveB
 euint32 constantProduct
 ```
 
-### fee
-
-```solidity
-uint256 fee
-```
-
-### FEE_PERCENT
-
-```solidity
-uint256 FEE_PERCENT
-```
-
 ### balanceFeeTokenA
 
 ```solidity
@@ -58,10 +64,13 @@ euint32 balanceFeeTokenA
 euint32 balanceFeeTokenB
 ```
 
-### contractOwner
+### TokenPair
 
 ```solidity
-address contractOwner
+enum TokenPair {
+  TokenA_TokenB,
+  TokenB_TokenA
+}
 ```
 
 ### onlyContractOwner
@@ -103,33 +112,20 @@ _Function to add liquidity to the CFMM._
 | encryptedAmountA | bytes | Encrypted amount of tokenA. |
 | encryptedAmountB | bytes | Encrypted amount of tokenB. |
 
-### swapAtoB
+### swap
 
 ```solidity
-function swapAtoB(bytes encryptedAmountAIn) external
+function swap(enum CFMM.TokenPair pair, bytes encryptedAmountIn) external
 ```
 
-_Function to swap tokenA for tokenB._
+_Function to swap token._
 
 #### Parameters
 
-| Name               | Type  | Description                         |
-| ------------------ | ----- | ----------------------------------- |
-| encryptedAmountAIn | bytes | Encrypted amount of tokenA to swap. |
-
-### swapBtoA
-
-```solidity
-function swapBtoA(bytes encryptedAmountBIn) external
-```
-
-_Function to swap tokenB for tokenA._
-
-#### Parameters
-
-| Name               | Type  | Description                         |
-| ------------------ | ----- | ----------------------------------- |
-| encryptedAmountBIn | bytes | Encrypted amount of tokenB to swap. |
+| Name              | Type                | Description                         |
+| ----------------- | ------------------- | ----------------------------------- |
+| pair              | enum CFMM.TokenPair |                                     |
+| encryptedAmountIn | bytes               | Encrypted amount of tokenA to swap. |
 
 ### withdrawFee
 
@@ -145,13 +141,41 @@ _Function to withdraw fee tokens_
 | ---- | ------- | ------------------------------ |
 | to   | address | address to receive tokens fee. |
 
-### getAmountBOut
+### \_swapAtoB
 
 ```solidity
-function getAmountBOut(euint32 amountAIn) internal view returns (euint32)
+function _swapAtoB(euint32 amountAIn) internal
 ```
 
-_Function to calculate the amount of tokenB to receive for a given amount of tokenA._
+_Internal function to swap tokenA for tokenB._
+
+#### Parameters
+
+| Name      | Type    | Description                         |
+| --------- | ------- | ----------------------------------- |
+| amountAIn | euint32 | Encrypted amount of tokenA to swap. |
+
+### \_swapBtoA
+
+```solidity
+function _swapBtoA(euint32 amountBIn) internal
+```
+
+_Internal function to swap tokenB for tokenA._
+
+#### Parameters
+
+| Name      | Type    | Description                         |
+| --------- | ------- | ----------------------------------- |
+| amountBIn | euint32 | Encrypted amount of tokenB to swap. |
+
+### \_getAmountBOut
+
+```solidity
+function _getAmountBOut(euint32 amountAIn) internal view returns (euint32)
+```
+
+_Internal function to calculate the amount of tokenB to receive for a given amount of tokenA._
 
 #### Parameters
 
@@ -165,13 +189,13 @@ _Function to calculate the amount of tokenB to receive for a given amount of tok
 | ---- | ------- | ---------------------------- |
 | [0]  | euint32 | Amount of tokenB to receive. |
 
-### getAmountAOut
+### \_getAmountAOut
 
 ```solidity
-function getAmountAOut(euint32 amountBIn) internal view returns (euint32)
+function _getAmountAOut(euint32 amountBIn) internal view returns (euint32)
 ```
 
-_Function to calculate the amount of tokenA to receive for a given amount of tokenB._
+_Internal function to calculate the amount of tokenA to receive for a given amount of tokenB._
 
 #### Parameters
 
@@ -188,7 +212,7 @@ _Function to calculate the amount of tokenA to receive for a given amount of tok
 ### getReserveA
 
 ```solidity
-function getReserveA(bytes32 publicKey, bytes signature) public view returns (bytes)
+function getReserveA(bytes32 publicKey, bytes signature) external view returns (bytes)
 ```
 
 _Function to retrieve the reserve amount of tokenA (onlyOwner)._
@@ -209,7 +233,7 @@ _Function to retrieve the reserve amount of tokenA (onlyOwner)._
 ### getReserveB
 
 ```solidity
-function getReserveB(bytes32 publicKey, bytes signature) public view returns (bytes)
+function getReserveB(bytes32 publicKey, bytes signature) external view returns (bytes)
 ```
 
 _Function to retrieve the reserve amount of tokenB (onlyOwner)._
@@ -230,7 +254,7 @@ _Function to retrieve the reserve amount of tokenB (onlyOwner)._
 ### getConstantProduct
 
 ```solidity
-function getConstantProduct(bytes32 publicKey, bytes signature) public view returns (bytes)
+function getConstantProduct(bytes32 publicKey, bytes signature) external view returns (bytes)
 ```
 
 _Function to retrieve the constant product (onlyOwner)._
@@ -251,7 +275,7 @@ _Function to retrieve the constant product (onlyOwner)._
 ### getFeeBalances
 
 ```solidity
-function getFeeBalances(bytes32 publicKey, bytes signature) public view returns (bytes, bytes)
+function getFeeBalances(bytes32 publicKey, bytes signature) external view returns (bytes, bytes)
 ```
 
 _Function to retrieve the fee balances (tokenA and tokenB) (onlyOwner)._

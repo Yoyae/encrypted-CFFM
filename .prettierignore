@@ -6,7 +6,9 @@ artifacts
 build
 cache
 coverage
+deployments
 dist
+docs
 node_modules
 types
 

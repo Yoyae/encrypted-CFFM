@@ -11,6 +11,8 @@ describe("CFMM", function () {
   const MAX_UINT32 = 2 ** 32 / 2 - 1; //This is NOT a uint32 but a int32.
   const TOKENA_LIQUIDITY = 10000;
   const TOKENB_LIQUIDITY = 1000;
+  const PAIR_TOKENA_TOKENB = 0;
+  const PAIR_TOKENB_TOKENA = 1;
 
   beforeEach(async function () {
     this.signers = await getSigners(ethers);
@@ -161,7 +163,7 @@ describe("CFMM", function () {
 
         // Swap
         encryptedAmountSwap = this.instancesCFMM.alice.encrypt32(1000);
-        transaction = await createTransaction(this.cfmm.swapAtoB, encryptedAmountSwap);
+        transaction = await createTransaction(this.cfmm.swap, PAIR_TOKENA_TOKENB, encryptedAmountSwap);
         await transaction.wait();
 
         //Check token balances
@@ -204,7 +206,7 @@ describe("CFMM", function () {
         encryptedAmountSwap = this.instancesCFMM.alice.encrypt32(
           TOKENA_LIQUIDITY * TOKENB_LIQUIDITY - TOKENA_LIQUIDITY,
         );
-        transaction = await createTransaction(this.cfmm.swapAtoB, encryptedAmountSwap);
+        transaction = await createTransaction(this.cfmm.swap, PAIR_TOKENA_TOKENB, encryptedAmountSwap);
         await transaction.wait();
 
         //Check token balances
@@ -246,7 +248,7 @@ describe("CFMM", function () {
         await transaction.wait();
 
         // Swap
-        transaction = await createTransaction(this.cfmm.swapAtoB, encryptedAmountSwap);
+        transaction = await createTransaction(this.cfmm.swap, PAIR_TOKENA_TOKENB, encryptedAmountSwap);
         await expect(transaction.wait()).to.be.reverted;
       });
 
@@ -254,7 +256,7 @@ describe("CFMM", function () {
       it("should revert if 0 token is provided", async function () {
         const encryptedAmountSwap = this.instancesCFMM.alice.encrypt32(0);
 
-        const transaction = await createTransaction(this.cfmm.swapAtoB, encryptedAmountSwap);
+        const transaction = await createTransaction(this.cfmm.swap, PAIR_TOKENA_TOKENB, encryptedAmountSwap);
         await expect(transaction.wait()).to.be.reverted;
       });
 
@@ -265,7 +267,7 @@ describe("CFMM", function () {
         await transaction.wait();
 
         // Swap
-        transaction = await createTransaction(this.cfmm.swapAtoB, encryptedAmountSwap);
+        transaction = await createTransaction(this.cfmm.swap, PAIR_TOKENA_TOKENB, encryptedAmountSwap);
         await expect(transaction.wait()).to.be.reverted;
       });
     });
@@ -279,7 +281,7 @@ describe("CFMM", function () {
 
         // Swap
         encryptedAmountSwap = this.instancesCFMM.alice.encrypt32(20);
-        transaction = await createTransaction(this.cfmm.swapBtoA, encryptedAmountSwap);
+        transaction = await createTransaction(this.cfmm.swap, PAIR_TOKENB_TOKENA, encryptedAmountSwap);
         await transaction.wait();
 
         //Check token balances
@@ -322,7 +324,7 @@ describe("CFMM", function () {
         encryptedAmountSwap = this.instancesCFMM.alice.encrypt32(
           TOKENA_LIQUIDITY * TOKENB_LIQUIDITY - TOKENB_LIQUIDITY,
         );
-        transaction = await createTransaction(this.cfmm.swapBtoA, encryptedAmountSwap);
+        transaction = await createTransaction(this.cfmm.swap, PAIR_TOKENB_TOKENA, encryptedAmountSwap);
         await transaction.wait();
 
         //Check token balances
@@ -364,7 +366,7 @@ describe("CFMM", function () {
         await transaction.wait();
 
         // Swap
-        transaction = await createTransaction(this.cfmm.swapBtoA, encryptedAmountSwap);
+        transaction = await createTransaction(this.cfmm.swap, PAIR_TOKENB_TOKENA, encryptedAmountSwap);
         await expect(transaction.wait()).to.be.reverted;
       });
 
@@ -372,7 +374,7 @@ describe("CFMM", function () {
       it("should revert if 0 token is provided", async function () {
         const encryptedAmountSwap = this.instancesCFMM.alice.encrypt32(0);
 
-        const transaction = await createTransaction(this.cfmm.swapBtoA, encryptedAmountSwap);
+        const transaction = await createTransaction(this.cfmm.swap, PAIR_TOKENB_TOKENA, encryptedAmountSwap);
         await expect(transaction.wait()).to.be.reverted;
       });
 
@@ -383,7 +385,7 @@ describe("CFMM", function () {
         await transaction.wait();
 
         // Swap
-        transaction = await createTransaction(this.cfmm.swapBtoA, encryptedAmountSwap);
+        transaction = await createTransaction(this.cfmm.swap, PAIR_TOKENB_TOKENA, encryptedAmountSwap);
         await expect(transaction.wait()).to.be.reverted;
       });
     });
@@ -409,7 +411,7 @@ describe("CFMM", function () {
 
       let transaction = await createTransaction(this.tokenA.approve, this.CFMMAddress, encryptedAmountSwap);
       await transaction.wait();
-      transaction = await createTransaction(this.cfmm.swapAtoB, encryptedAmountSwap);
+      transaction = await createTransaction(this.cfmm.swap, PAIR_TOKENA_TOKENB, encryptedAmountSwap);
       await transaction.wait();
 
       // Check fee balances
@@ -430,7 +432,7 @@ describe("CFMM", function () {
 
       let transaction = await createTransaction(this.tokenB.approve, this.CFMMAddress, encryptedAmountSwap);
       await transaction.wait();
-      transaction = await createTransaction(this.cfmm.swapBtoA, encryptedAmountSwap);
+      transaction = await createTransaction(this.cfmm.swap, PAIR_TOKENB_TOKENA, encryptedAmountSwap);
       await transaction.wait();
 
       // Check fee balances
@@ -451,7 +453,7 @@ describe("CFMM", function () {
 
       let transaction = await createTransaction(this.tokenB.approve, this.CFMMAddress, encryptedAmountSwap);
       await transaction.wait();
-      transaction = await createTransaction(this.cfmm.swapBtoA, encryptedAmountSwap);
+      transaction = await createTransaction(this.cfmm.swap, PAIR_TOKENB_TOKENA, encryptedAmountSwap);
       await transaction.wait();
       transaction = await createTransaction(this.cfmm.withdrawFee, this.signers.alice.address);
       await transaction.wait();
@@ -474,7 +476,7 @@ describe("CFMM", function () {
 
       let transaction = await createTransaction(this.tokenA.approve, this.CFMMAddress, encryptedAmountSwap);
       await transaction.wait();
-      transaction = await createTransaction(this.cfmm.swapAtoB, encryptedAmountSwap);
+      transaction = await createTransaction(this.cfmm.swap, PAIR_TOKENA_TOKENB, encryptedAmountSwap);
       await transaction.wait();
       transaction = await createTransaction(this.cfmm.withdrawFee, this.signers.alice.address);
       await transaction.wait();
