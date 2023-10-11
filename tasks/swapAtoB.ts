@@ -85,7 +85,7 @@ task("task:swapAtoB")
     //Swap token A to B
     tx = await cfmmContract
       .connect(signers[taskArguments.account as keyof Signers])
-      .swapAtoB(instancesCfmm[taskArguments.account as keyof FhevmInstances].encrypt32(+taskArguments.amount));
+      .swap(0, instancesCfmm[taskArguments.account as keyof FhevmInstances].encrypt32(+taskArguments.amount));
 
     await tx.wait(1);
 

@@ -8,6 +8,18 @@
 function transferFrom(address sender, address recipient, bytes amount) external
 ```
 
+### transferFrom
+
+```solidity
+function transferFrom(address sender, address recipient, euint32 amount) external
+```
+
+### transfer
+
+```solidity
+function transfer(address recipient, bytes amount) external
+```
+
 ### transfer
 
 ```solidity
