@@ -82,11 +82,11 @@ _Constructor to initialize the CFMM contract with token addresses._
 
 #### Parameters
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _tokenA | address | Address of the first token. |
-| _tokenB | address | Address of the second token. |
-| _fee | uint256 |  |
+| Name     | Type    | Description                  |
+| -------- | ------- | ---------------------------- |
+| \_tokenA | address | Address of the first token.  |
+| \_tokenB | address | Address of the second token. |
+| \_fee    | uint256 |                              |
 
 ### addLiquidity
 
@@ -98,8 +98,8 @@ _Function to add liquidity to the CFMM._
 
 #### Parameters
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
+| Name             | Type  | Description                 |
+| ---------------- | ----- | --------------------------- |
 | encryptedAmountA | bytes | Encrypted amount of tokenA. |
 | encryptedAmountB | bytes | Encrypted amount of tokenB. |
 
@@ -113,8 +113,8 @@ _Function to swap tokenA for tokenB._
 
 #### Parameters
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
+| Name               | Type  | Description                         |
+| ------------------ | ----- | ----------------------------------- |
 | encryptedAmountAIn | bytes | Encrypted amount of tokenA to swap. |
 
 ### swapBtoA
@@ -127,8 +127,8 @@ _Function to swap tokenB for tokenA._
 
 #### Parameters
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
+| Name               | Type  | Description                         |
+| ------------------ | ----- | ----------------------------------- |
 | encryptedAmountBIn | bytes | Encrypted amount of tokenB to swap. |
 
 ### withdrawFee
@@ -141,9 +141,9 @@ _Function to withdraw fee tokens_
 
 #### Parameters
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| to | address | address to receive tokens fee. |
+| Name | Type    | Description                    |
+| ---- | ------- | ------------------------------ |
+| to   | address | address to receive tokens fee. |
 
 ### getAmountBOut
 
@@ -155,15 +155,15 @@ _Function to calculate the amount of tokenB to receive for a given amount of tok
 
 #### Parameters
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
+| Name      | Type    | Description       |
+| --------- | ------- | ----------------- |
 | amountAIn | euint32 | Amount of tokenA. |
 
 #### Return Values
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | euint32 | Amount of tokenB to receive. |
+| Name | Type    | Description                  |
+| ---- | ------- | ---------------------------- |
+| [0]  | euint32 | Amount of tokenB to receive. |
 
 ### getAmountAOut
 
@@ -175,15 +175,15 @@ _Function to calculate the amount of tokenA to receive for a given amount of tok
 
 #### Parameters
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
+| Name      | Type    | Description       |
+| --------- | ------- | ----------------- |
 | amountBIn | euint32 | Amount of tokenB. |
 
 #### Return Values
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | euint32 | Amount of tokenA to receive. |
+| Name | Type    | Description                  |
+| ---- | ------- | ---------------------------- |
+| [0]  | euint32 | Amount of tokenA to receive. |
 
 ### getReserveA
 
@@ -195,16 +195,16 @@ _Function to retrieve the reserve amount of tokenA (onlyOwner)._
 
 #### Parameters
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| publicKey | bytes32 | Public key for reencryption. |
-| signature | bytes | Signature for authentication. |
+| Name      | Type    | Description                   |
+| --------- | ------- | ----------------------------- |
+| publicKey | bytes32 | Public key for reencryption.  |
+| signature | bytes   | Signature for authentication. |
 
 #### Return Values
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | bytes | Encrypted (with passed publicKey) reserve amount of tokenA. |
+| Name | Type  | Description                                                 |
+| ---- | ----- | ----------------------------------------------------------- |
+| [0]  | bytes | Encrypted (with passed publicKey) reserve amount of tokenA. |
 
 ### getReserveB
 
@@ -216,16 +216,16 @@ _Function to retrieve the reserve amount of tokenB (onlyOwner)._
 
 #### Parameters
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| publicKey | bytes32 | Public key for reencryption. |
-| signature | bytes | Signature for authentication. |
+| Name      | Type    | Description                   |
+| --------- | ------- | ----------------------------- |
+| publicKey | bytes32 | Public key for reencryption.  |
+| signature | bytes   | Signature for authentication. |
 
 #### Return Values
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | bytes | Encrypted (with passed publicKey) reserve amount of tokenB. |
+| Name | Type  | Description                                                 |
+| ---- | ----- | ----------------------------------------------------------- |
+| [0]  | bytes | Encrypted (with passed publicKey) reserve amount of tokenB. |
 
 ### getConstantProduct
 
@@ -237,16 +237,16 @@ _Function to retrieve the constant product (onlyOwner)._
 
 #### Parameters
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| publicKey | bytes32 | Public key for reencryption. |
-| signature | bytes | Signature for authentication. |
+| Name      | Type    | Description                   |
+| --------- | ------- | ----------------------------- |
+| publicKey | bytes32 | Public key for reencryption.  |
+| signature | bytes   | Signature for authentication. |
 
 #### Return Values
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | bytes | Encrypted (with passed publicKey) constant product. |
+| Name | Type  | Description                                         |
+| ---- | ----- | --------------------------------------------------- |
+| [0]  | bytes | Encrypted (with passed publicKey) constant product. |
 
 ### getFeeBalances
 
@@ -258,15 +258,14 @@ _Function to retrieve the fee balances (tokenA and tokenB) (onlyOwner)._
 
 #### Parameters
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| publicKey | bytes32 | Public key for reencryption. |
-| signature | bytes | Signature for authentication. |
+| Name      | Type    | Description                   |
+| --------- | ------- | ----------------------------- |
+| publicKey | bytes32 | Public key for reencryption.  |
+| signature | bytes   | Signature for authentication. |
 
 #### Return Values
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | bytes | Encrypted (with passed publicKey) tokenA and tokenB fee balances. |
-| [1] | bytes |  |
-
+| Name | Type  | Description                                                       |
+| ---- | ----- | ----------------------------------------------------------------- |
+| [0]  | bytes | Encrypted (with passed publicKey) tokenA and tokenB fee balances. |
+| [1]  | bytes |                                                                   |

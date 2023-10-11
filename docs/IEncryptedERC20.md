@@ -25,4 +25,3 @@ function approve(address spender, bytes amount) external
 ```solidity
 function balanceOf(address account) external view returns (bytes)
 ```
-
