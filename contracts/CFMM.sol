@@ -107,9 +107,15 @@ contract CFMM is EIP712WithModifier {
         // Ensure reserveB remains positive
         require(TFHE.decrypt(TFHE.ge(reserveB, 1)), "ReserveB must be > 0");
 
+        // Fees calculation
+        euint32 amountOfFee = TFHE.asEuint32((TFHE.decrypt(amountBOut) * fee) / FEE_PERCENT);
+
+        // Update balance fee of token B
+        balanceFeeTokenB = balanceFeeTokenB + amountOfFee;
+
         // Transfer tokens
         IEncryptedERC20(tokenA).transferFrom(msg.sender, address(this), encryptedAmountAIn);
-        IEncryptedERC20(tokenB).transfer(msg.sender, amountBOut);
+        IEncryptedERC20(tokenB).transfer(msg.sender, amountBOut - amountOfFee);
     }
 
     /**
@@ -136,9 +142,15 @@ contract CFMM is EIP712WithModifier {
         // Ensure reserveA remains positive
         require(TFHE.decrypt(TFHE.ge(reserveA, 1)), "ReserveA must be > 0");
 
+        // Fees calculation
+        euint32 amountOfFee = TFHE.asEuint32((TFHE.decrypt(amountAOut) * fee) / FEE_PERCENT);
+
+        // Update balance fee of token B
+        balanceFeeTokenB = balanceFeeTokenB + amountOfFee;
+
         // Transfer tokens
         IEncryptedERC20(tokenB).transferFrom(msg.sender, address(this), encryptedAmountBIn);
-        IEncryptedERC20(tokenA).transfer(msg.sender, amountAOut);
+        IEncryptedERC20(tokenA).transfer(msg.sender, amountAOut - amountOfFee);
     }
 
     /**
@@ -168,7 +180,7 @@ contract CFMM is EIP712WithModifier {
      * @param amountAIn Amount of tokenA.
      * @return Amount of tokenB to receive.
      */
-    function getAmountBOut(euint32 amountAIn) internal returns (euint32) {
+    function getAmountBOut(euint32 amountAIn) internal view returns (euint32) {
         // Validate the input amount
         require(TFHE.decrypt(TFHE.gt(amountAIn, 0)), "AmountAIn must be > 0");
 
@@ -179,15 +191,6 @@ contract CFMM is EIP712WithModifier {
         euint32 newReserveB = TFHE.asEuint32(TFHE.decrypt(constantProduct) / TFHE.decrypt(newReserveA));
         euint32 amountBOut = reserveB - newReserveB;
 
-        // Fees calculation
-        euint32 amountOfFee = TFHE.asEuint32((TFHE.decrypt(amountBOut) * fee) / FEE_PERCENT);
-
-        // Update balance fee of token B
-        balanceFeeTokenB = balanceFeeTokenB + amountOfFee;
-
-        // Reflect fees for output tokenB
-        amountBOut = amountBOut - amountOfFee;
-
         return amountBOut;
     }
 
@@ -196,7 +199,7 @@ contract CFMM is EIP712WithModifier {
      * @param amountBIn Amount of tokenB.
      * @return Amount of tokenA to receive.
      */
-    function getAmountAOut(euint32 amountBIn) internal returns (euint32) {
+    function getAmountAOut(euint32 amountBIn) internal view returns (euint32) {
         // Validate the input amount
         require(TFHE.decrypt(TFHE.gt(amountBIn, 0)), "AmountBIn must be > 0");
 
@@ -206,15 +209,6 @@ contract CFMM is EIP712WithModifier {
         // Calculate the corresponding amount of tokenA
         euint32 newReserveA = TFHE.asEuint32(TFHE.decrypt(constantProduct) / TFHE.decrypt(newReserveB));
         euint32 amountAOut = reserveA - newReserveA;
-
-        // Fees calculation
-        euint32 amountOfFee = TFHE.asEuint32((TFHE.decrypt(amountAOut) * fee) / FEE_PERCENT);
-
-        // Update balance fee of token A
-        balanceFeeTokenA = balanceFeeTokenA + amountOfFee;
-
-        // Reflect fees for output tokenA
-        amountAOut = amountAOut - amountOfFee;
 
         return amountAOut;
     }
