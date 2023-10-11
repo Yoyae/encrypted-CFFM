@@ -97,6 +97,22 @@ error UnderflowError()
 
 _Calculation leads to an underflow_
 
+### UnauthorizedAccount
+
+```solidity
+error UnauthorizedAccount(address account)
+```
+
+_The caller account is not authorized to perform an operation._
+
+### InvalidAddress
+
+```solidity
+error InvalidAddress(address account)
+```
+
+_The caller account is not authorized to perform an operation._
+
 ### onlyContractOwner
 
 ```solidity
