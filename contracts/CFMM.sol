@@ -22,6 +22,14 @@ contract CFMM is EIP712WithModifier {
     // Encrypted constant product of the reserves (invariant in a constant function market maker)
     euint32 internal constantProduct;
 
+    // Swap fee in % (400 = 4%)
+    uint public fee;
+    uint public constant FEE_PERCENT = 10000;
+
+    // Balance of fees of tokenA and tokenB
+    euint32 internal balanceFeeTokenA;
+    euint32 internal balanceFeeTokenB;
+
     // Address of the contract owner
     address public contractOwner;
 
@@ -38,12 +46,13 @@ contract CFMM is EIP712WithModifier {
      * @param _tokenA Address of the first token.
      * @param _tokenB Address of the second token.
      */
-    constructor(address _tokenA, address _tokenB) EIP712WithModifier("Authorization token", "1") {
+    constructor(address _tokenA, address _tokenB, uint _fee) EIP712WithModifier("Authorization token", "1") {
         require(_tokenA != address(0), "Invalid tokenA address");
         require(_tokenB != address(0), "Invalid tokenB address");
         tokenA = _tokenA;
         tokenB = _tokenB;
         contractOwner = msg.sender;
+        fee = _fee;
     }
 
     /**
@@ -98,9 +107,15 @@ contract CFMM is EIP712WithModifier {
         // Ensure reserveB remains positive
         require(TFHE.decrypt(TFHE.ge(reserveB, 1)), "ReserveB must be > 0");
 
+        // Fees calculation
+        euint32 amountOfFee = TFHE.asEuint32((TFHE.decrypt(amountBOut) * fee) / FEE_PERCENT);
+
+        // Update balance fee of token B
+        balanceFeeTokenB = balanceFeeTokenB + amountOfFee;
+
         // Transfer tokens
         IEncryptedERC20(tokenA).transferFrom(msg.sender, address(this), encryptedAmountAIn);
-        IEncryptedERC20(tokenB).transfer(msg.sender, amountBOut);
+        IEncryptedERC20(tokenB).transfer(msg.sender, amountBOut - amountOfFee);
     }
 
     /**
@@ -127,9 +142,34 @@ contract CFMM is EIP712WithModifier {
         // Ensure reserveA remains positive
         require(TFHE.decrypt(TFHE.ge(reserveA, 1)), "ReserveA must be > 0");
 
+        // Fees calculation
+        euint32 amountOfFee = TFHE.asEuint32((TFHE.decrypt(amountAOut) * fee) / FEE_PERCENT);
+
+        // Update balance fee of token A
+        balanceFeeTokenA = balanceFeeTokenA + amountOfFee;
+
         // Transfer tokens
         IEncryptedERC20(tokenB).transferFrom(msg.sender, address(this), encryptedAmountBIn);
-        IEncryptedERC20(tokenA).transfer(msg.sender, amountAOut);
+        IEncryptedERC20(tokenA).transfer(msg.sender, amountAOut - amountOfFee);
+    }
+
+    /**
+     * @dev Function to withdraw fee tokens
+     * @param to address to receive tokens fee.
+     */
+    function withdrawFee(address to) external onlyContractOwner {
+        // Balance needs to be > 0
+        require(TFHE.decrypt(TFHE.gt(balanceFeeTokenA | balanceFeeTokenB, 0)), "balanceFeeToken must be > 0");
+
+        // Using temp variables then reset state variable to avoid reentrancy
+        euint32 tempBalanceFeeTokenA = balanceFeeTokenA;
+        euint32 tempBalanceFeeTokenB = balanceFeeTokenB;
+
+        balanceFeeTokenA = TFHE.asEuint32(0);
+        balanceFeeTokenB = TFHE.asEuint32(0);
+
+        IEncryptedERC20(tokenA).transfer(to, tempBalanceFeeTokenA);
+        IEncryptedERC20(tokenB).transfer(to, tempBalanceFeeTokenB);
     }
 
     /**
@@ -147,6 +187,7 @@ contract CFMM is EIP712WithModifier {
         // Calculate the corresponding amount of tokenB
         euint32 newReserveB = TFHE.asEuint32(TFHE.decrypt(constantProduct) / TFHE.decrypt(newReserveA));
         euint32 amountBOut = reserveB - newReserveB;
+
         return amountBOut;
     }
 
@@ -165,6 +206,7 @@ contract CFMM is EIP712WithModifier {
         // Calculate the corresponding amount of tokenA
         euint32 newReserveA = TFHE.asEuint32(TFHE.decrypt(constantProduct) / TFHE.decrypt(newReserveB));
         euint32 amountAOut = reserveA - newReserveA;
+
         return amountAOut;
     }
 
@@ -205,5 +247,18 @@ contract CFMM is EIP712WithModifier {
         bytes calldata signature
     ) public view onlySignedPublicKey(publicKey, signature) onlyContractOwner returns (bytes memory) {
         return TFHE.reencrypt(constantProduct, publicKey, 0);
+    }
+
+    /**
+     * @dev Function to retrieve the fee balances (tokenA and tokenB) (onlyOwner).
+     * @param publicKey Public key for reencryption.
+     * @param signature Signature for authentication.
+     * @return Encrypted (with passed publicKey) tokenA and tokenB fee balances.
+     */
+    function getFeeBalances(
+        bytes32 publicKey,
+        bytes calldata signature
+    ) public view onlySignedPublicKey(publicKey, signature) onlyContractOwner returns (bytes memory, bytes memory) {
+        return (TFHE.reencrypt(balanceFeeTokenA, publicKey, 0), TFHE.reencrypt(balanceFeeTokenB, publicKey, 0));
     }
 }

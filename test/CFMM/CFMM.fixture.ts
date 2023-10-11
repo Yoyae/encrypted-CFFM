@@ -7,7 +7,7 @@ export async function deployCFMMFixture(tokenAAddress: string, tokenBAddress: st
   const signers = await getSigners(ethers);
 
   const contractFactory = await ethers.getContractFactory("CFMM");
-  const contract = await contractFactory.connect(signers.alice).deploy(tokenAAddress, tokenBAddress);
+  const contract = await contractFactory.connect(signers.alice).deploy(tokenAAddress, tokenBAddress, 500);
   await contract.waitForDeployment();
 
   return contract;
