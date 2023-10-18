@@ -64,6 +64,18 @@ euint32 balanceFeeTokenA
 euint32 balanceFeeTokenB
 ```
 
+### liquidityBalanceTokenA
+
+```solidity
+mapping(address => euint32) liquidityBalanceTokenA
+```
+
+### liquidityBalanceTokenB
+
+```solidity
+mapping(address => euint32) liquidityBalanceTokenB
+```
+
 ### TokenPair
 
 ```solidity
@@ -144,6 +156,21 @@ function addLiquidity(bytes encryptedAmountA, bytes encryptedAmountB) external
 ```
 
 _Function to add liquidity to the CFMM._
+
+#### Parameters
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| encryptedAmountA | bytes | Encrypted amount of tokenA. |
+| encryptedAmountB | bytes | Encrypted amount of tokenB. |
+
+### removeLiquidity
+
+```solidity
+function removeLiquidity(bytes encryptedAmountA, bytes encryptedAmountB) external
+```
+
+_Function to remove liquidity to the CFMM._
 
 #### Parameters
 

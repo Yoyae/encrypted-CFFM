@@ -45,6 +45,12 @@ contract CFMM is EIP712WithModifier {
     // @dev Balance of fee tokens for tokenB
     euint32 internal balanceFeeTokenB;
 
+    // @dev Liquidity balance of each addres for tokenA
+    mapping(address => euint32) liquidityBalanceTokenA;
+
+    // @dev Liquidity balance of each addres for tokenB
+    mapping(address => euint32) liquidityBalanceTokenB;
+
     // Pair token for swap
     // @dev Enum representing the pair of tokens for swap
     enum TokenPair {
@@ -128,6 +134,10 @@ contract CFMM is EIP712WithModifier {
             revert OverflowError();
         }
 
+        // Update liquitiy balance (no overflow check ?)
+        liquidityBalanceTokenA[msg.sender] = liquidityBalanceTokenA[msg.sender] + amountA;
+        liquidityBalanceTokenB[msg.sender] = liquidityBalanceTokenB[msg.sender] + amountB;
+
         // Update reserveA and reserveB
         reserveA = reserveA + amountA;
         reserveB = reserveB + amountB;
@@ -138,6 +148,44 @@ contract CFMM is EIP712WithModifier {
         // Transfer tokens from the sender to the contract
         IEncryptedERC20(tokenA).transferFrom(msg.sender, address(this), encryptedAmountA);
         IEncryptedERC20(tokenB).transferFrom(msg.sender, address(this), encryptedAmountB);
+    }
+
+    /**
+     * @dev Function to remove liquidity to the CFMM.
+     * @param encryptedAmountA Encrypted amount of tokenA.
+     * @param encryptedAmountB Encrypted amount of tokenB.
+     */
+    function removeLiquidity(bytes calldata encryptedAmountA, bytes calldata encryptedAmountB) external {
+        // Validate the input amounts
+        euint32 amountA = TFHE.asEuint32(encryptedAmountA);
+        euint32 amountB = TFHE.asEuint32(encryptedAmountB);
+        // One of the input amounts needs to be > 0
+        if (!TFHE.decrypt(TFHE.gt(amountA | amountB, 0))) {
+            revert InvalidAmount();
+        }
+
+        // Check for underflow when removing reserves
+        if (!TFHE.decrypt(TFHE.le(amountA, reserveA))) {
+            revert UnderflowError();
+        }
+        if (!TFHE.decrypt(TFHE.le(amountB, reserveB))) {
+            revert UnderflowError();
+        }
+
+        // Update liquitiy balance (no underflow check ?)
+        liquidityBalanceTokenA[msg.sender] = liquidityBalanceTokenA[msg.sender] - amountA;
+        liquidityBalanceTokenB[msg.sender] = liquidityBalanceTokenB[msg.sender] - amountB;
+
+        // Update reserveA and reserveB
+        reserveA = reserveA - amountA;
+        reserveB = reserveB - amountB;
+
+        // Update constantProduct
+        constantProduct = reserveA * reserveB;
+
+        // Transfer tokens to the sender
+        IEncryptedERC20(tokenA).transfer(msg.sender, encryptedAmountA);
+        IEncryptedERC20(tokenB).transfer(msg.sender, encryptedAmountB);
     }
 
     /**
